@@ -1,1 +1,87 @@
+name: Build HuTao Launcher Rust APK
 
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Android SDK & NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0 ndk;25.2.9519653'
+
+      - name: Set up Rust toolchain (4 Android ABIs)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: >
+            aarch64-linux-android,
+            armv7-linux-androideabi,
+            i686-linux-android,
+            x86_64-linux-android
+
+      - name: Install cargo-ndk
+        uses: taiki-e/install-action@cargo-ndk
+
+      - name: Run Rust core unit tests
+        run: cargo test --manifest-path rust/Cargo.toml --workspace
+
+      - name: Compile Rust libraries to jniLibs (.so)
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
+        run: |
+          cd rust
+          cargo ndk \
+            -t arm64-v8a \
+            -t armeabi-v7a \
+            -t x86 \
+            -t x86_64 \
+            -o ../app_pojavlauncher/src/main/jniLibs \
+            build --release
+          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+            cp "../app_pojavlauncher/src/main/jniLibs/${abi}/libpojavexec_awt.so" \
+               "../app_pojavlauncher/src/main/jniLibs/${abi}/libawt_xawt.so"
+            cp "../app_pojavlauncher/src/main/jniLibs/${abi}/liblinkerhook.so" \
+               "../app_pojavlauncher/src/main/jniLibs/${abi}/libexithook.so"
+          done
+
+      - name: Download LTW Renderer AAR
+        run: |
+          mkdir -p app_pojavlauncher/libs
+          wget -q https://github.com/PojavLauncherTeam/LTW/releases/latest/download/ltw-release.aar -O app_pojavlauncher/libs/ltw-release.aar
+
+      - name: Set up Gradle 8.11
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11"
+
+      - name: Build JRE Helper JARs & Signed Debug APK
+        run: |
+          chmod +x gradlew scripts/languagelist_updater.sh
+          ./scripts/languagelist_updater.sh
+          ./gradlew :jre_lwjgl3glfw:jar :arc_dns_injector:jar :forge_installer:jar --no-daemon
+          ./gradlew :app_pojavlauncher:assembleDebug --no-daemon
+          mkdir -p out
+          cp app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk out/HuTao-Launcher-debug.apk
+          sha256sum out/HuTao-Launcher-debug.apk > out/HuTao-Launcher-debug.sha256
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuTao-Launcher-APK
+          path: |
+            out/HuTao-Launcher-debug.apk
+            out/HuTao-Launcher-debug.sha256
