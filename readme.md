@@ -1,18 +1,16 @@
-<h1 align="center">[Tên Launcher Của Bạn]</h1>
+<h1 align="center">HuTao-launcher</h1>
 
 <p align="center">
-  <img src="path/to/your/logo.png" width="130" height="130" alt="Logo [Tên Launcher]">
+  <img src="path/to/your/logo.png" width="130" height="130" alt="Logo HuTao-launcher">
 </p>
 
 [![License](https://img.shields.io/badge/license-LGPLv3-blue.svg)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Us-724163890803638273?logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/your-link)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Us-724163890803638273?logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/2dqWuKJZES)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/your-username/your-repo/android.yml?branch=main)](https://github.com/your-username/your-repo/actions)
 
 *[Thêm một câu slogan hoặc mô tả ngắn gọn, ấn tượng về launcher của bạn ở đây]*
 
-**[Tên Launcher Của Bạn]** là trình khởi chạy thế hệ mới cho phép bạn chơi Minecraft: Java Edition mượt mà ngay trên các thiết bị Android và iOS. Được phát triển với mục tiêu tối ưu hóa hiệu năng, giao diện thân thiện và hỗ trợ hệ sinh thái mod phong phú.
-
-Để biết thêm thông tin chi tiết và hướng dẫn sử dụng, hãy truy cập [Wiki của dự án](https://your-wiki-link.com)!
+**HuTao-launcher** là trình khởi chạy thế hệ mới cho phép bạn chơi Minecraft: Java Edition mượt mà ngay trên các thiết bị Android. Được phát triển với mục tiêu tối ưu hóa hiệu năng, giao diện thân thiện và hỗ trợ hệ sinh thái mod phong phú.
 
 ---
 
@@ -36,7 +34,7 @@
 
 ## Giới thiệu
 
-* **[Tên Launcher Của Bạn]** là trình khởi chạy Minecraft: Java Edition tối ưu dành riêng cho hệ điều hành di động (Android & iOS).
+* **HuTao-launcher** là trình khởi chạy Minecraft: Java Edition tối ưu dành riêng cho hệ điều hành di động (Android).
 * **Hỗ trợ phiên bản rộng rãi:** Khởi chạy hầu hết các phiên bản Minecraft Java từ các bản thử nghiệm ban đầu đến các phiên bản Snapshot và phát hành mới nhất ($1.21+$).
 * **Hỗ trợ Mod linh hoạt:** Tích hợp sẵn khả năng cài đặt và chạy các trình quản lý mod phổ biến như **Fabric**, **Forge**, **NeoForge** và **Quilt**.
 * **Hiệu năng & Điều khiển:** Hỗ trợ điều khiển cảm ứng tùy biến cao, bộ dựng đồ họa tối ưu (OpenGL/Vulkan) và tích hợp các phiên bản OpenJDK (8, 17, 21) cho di động.
@@ -44,7 +42,7 @@
 
 ## Tải về & Cài đặt
 
-Bạn có thể tải và cài đặt **[Tên Launcher Của Bạn]** bằng một trong các cách sau:
+Bạn có thể tải và cài đặt **HuTao-launcher** bằng một trong các cách sau:
 
 1. **Bản phát hành chính thức (Releases):** Tải file APK mới nhất tại trang [Releases](https://github.com/your-username/your-repo/releases).
 2. **Tự biên dịch từ mã nguồn:** Thao tác theo hướng dẫn bên dưới để tự build bản phát hành thử nghiệm.
