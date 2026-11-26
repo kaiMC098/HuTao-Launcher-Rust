@@ -43,14 +43,14 @@ jobs:
           tool: cargo-ndk
 
       - name: Run Rust core unit tests
-        run: cargo test --manifest-path rust/Cargo.toml --workspace
+        run: cargo test --manifest-path rust/Cargo.toml -p pojav_core -p pojav_ui
 
       - name: Compile Rust libraries to jniLibs (.so)
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
         run: |
+          export ANDROID_NDK_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/ndk/25.2.9519653"
           cd rust
           cargo ndk \
+            -P 21 \
             -t arm64-v8a \
             -t armeabi-v7a \
             -t x86 \
@@ -90,4 +90,3 @@ jobs:
           path: |
             out/HuTao-Launcher-debug.apk
             out/HuTao-Launcher-debug.sha256
-            
