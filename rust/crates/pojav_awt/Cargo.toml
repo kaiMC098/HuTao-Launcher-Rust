@@ -1,0 +1,11 @@
+[package]
+name = "pojavexec_awt"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "pojavexec_awt"
+crate-type = ["cdylib"]
+
+[dependencies]
+jni.workspace = true
