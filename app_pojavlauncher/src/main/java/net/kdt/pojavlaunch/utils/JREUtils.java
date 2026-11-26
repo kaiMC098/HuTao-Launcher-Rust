@@ -244,7 +244,11 @@ public class JREUtils {
             envMap.put("POJAV_LOAD_TURNIP", "1");
         }
 
-        readCustomEnv(envMap); // Must be last so it overrides anything the user sets for obvious reasons.
+        readCustomEnv(envMap);
+        if (net.kdt.pojavlaunch.rust.RustCoreBridge.isInitialized()) {
+            String socJson = net.kdt.pojavlaunch.rust.RustCoreBridge.nativeApplySocOptimizations();
+            Logger.appendToLog("HuTao SoC Optimizer applied: " + socJson);
+        } // Must be last so it overrides anything the user sets for obvious reasons.
 
         for (Map.Entry<String, String> env : envMap.entrySet()) {
             Logger.appendToLog("Added custom env: " + env.getKey() + "=" + env.getValue());
