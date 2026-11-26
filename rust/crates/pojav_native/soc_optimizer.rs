@@ -7,10 +7,12 @@ use std::ffi::{c_char, CStr, CString};
 use std::fs;
 use std::sync::Mutex;
 
+#[cfg(target_os = "android")]
 extern "C" {
     fn __system_property_get(name: *const c_char, value: *mut c_char) -> libc::c_int;
 }
 
+#[cfg(target_os = "android")]
 fn get_android_prop(key: &str) -> String {
     let Ok(c_key) = CString::new(key) else {
         return String::new();
@@ -25,6 +27,17 @@ fn get_android_prop(key: &str) -> String {
     } else {
         String::new()
     }
+}
+
+#[cfg(not(target_os = "android"))]
+fn get_android_prop(_key: &str) -> String {
+    String::new()
+}
+
+pub fn get_android_api_level() -> i32 {
+    get_android_prop("ro.build.version.sdk")
+        .parse::<i32>()
+        .unwrap_or(21)
 }
 
 fn read_cpuinfo_hardware() -> String {

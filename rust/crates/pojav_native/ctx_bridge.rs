@@ -19,7 +19,7 @@ pub struct ANativeWindowBuffer {
     pub reserved: [u32; 6],
 }
 
-#[link(name = "android")]
+#[cfg_attr(target_os = "android", link(name = "android"))]
 extern "C" {
     fn ANativeWindow_fromSurface(env: *mut jni::sys::JNIEnv, surface: jni::sys::jobject) -> *mut c_void;
     fn ANativeWindow_release(window: *mut c_void);
@@ -168,7 +168,7 @@ static BRIDGE: Lazy<Mutex<BridgeState>> = Lazy::new(|| {
     })
 });
 
-static NO_RENDER_BUFFER: [u8; 4] = [0; 4];
+static mut NO_RENDER_BUFFER: [u8; 4] = [0; 4];
 static GL4ES_CURRENT_BUNDLE: AtomicPtr<GlRenderWindow> = AtomicPtr::new(std::ptr::null_mut());
 
 fn getenv_str(key: &str) -> Option<String> {
@@ -384,7 +384,7 @@ pub extern "system" fn Java_net_kdt_pojavlaunch_utils_JREUtils_releaseBridgeWind
 
 fn load_vulkan_internal() -> *mut c_void {
     let soc = apply_soc_runtime_optimizations();
-    let api_level = unsafe { libc::android_get_device_api_level() };
+    let api_level = crate::soc_optimizer::get_android_api_level();
 
     // Chỉ nạp Adreno Turnip trên thiết bị Snapdragon/Adreno API >= 28 khi POJAV_LOAD_TURNIP được bật.
     // Trên MediaTek Dimensity / Mali / Exynos luôn dùng libvulkan.so hệ thống để đảm bảo ổn định.
@@ -455,11 +455,12 @@ pub extern "system" fn Java_org_lwjgl_opengl_PojavRendererInit_nativeInitGl4esIn
     let Ok(sym_name) = env.new_string("set_getmainfbsize") else {
         return;
     };
+    let sym_obj = JObject::from(sym_name);
     if let Ok(val) = env.call_method(
         &function_provider,
         "getFunctionAddress",
         "(Ljava/lang/CharSequence;)J",
-        &[JValue::Object(&sym_name)],
+        &[JValue::Object(&sym_obj)],
     ) {
         if let Ok(addr) = val.j() {
             if addr != 0 {
@@ -718,7 +719,7 @@ pub extern "C" fn pojavMakeCurrent(window: *mut c_void) {
                     ANativeWindow_setBuffersGeometry((*bundle).native_surface, 0, 0, WINDOW_FORMAT_RGBX_8888);
                     (*bundle).disable_rendering = false;
                 } else {
-                    (*bundle).buffer.bits = NO_RENDER_BUFFER.as_ptr() as *mut c_void;
+                    (*bundle).buffer.bits = std::ptr::addr_of_mut!(NO_RENDER_BUFFER) as *mut c_void;
                     (*bundle).buffer.width = 1;
                     (*bundle).buffer.height = 1;
                     (*bundle).buffer.stride = 0;
