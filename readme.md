@@ -1,13 +1,11 @@
 <h1 align="center">HuTao-launcher</h1>
 
 <p align="center">
-  <img src="path/to/your/logo.png" width="130" height="130" alt="Logo HuTao-launcher">
+  <img src="app_pojavlauncher/src/main/assets/pojavlauncher.png" width="130" height="130" alt="Logo HuTao-launcher">
 </p>
 
 [![License](https://img.shields.io/badge/license-LGPLv3-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Us-724163890803638273?logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/2dqWuKJZES)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/your-username/your-repo/android.yml?branch=main)](https://github.com/your-username/your-repo/actions)
-
 *[Thêm một câu slogan hoặc mô tả ngắn gọn, ấn tượng về launcher của bạn ở đây]*
 
 **HuTao-launcher** là trình khởi chạy thế hệ mới cho phép bạn chơi Minecraft: Java Edition mượt mà ngay trên các thiết bị Android. Được phát triển với mục tiêu tối ưu hóa hiệu năng, giao diện thân thiện và hỗ trợ hệ sinh thái mod phong phú.
@@ -93,10 +91,6 @@ File APK sau khi biên dịch xong sẽ nằm tại đường dẫn: `app_pojavl
 ## Lỗi đã biết
 
 Theo dõi các vấn đề kỹ thuật và tiến độ sửa lỗi tại [Issue Tracker](https://github.com/your-username/your-repo/issues).
-
-## FAQ
-
-Xem danh sách câu hỏi thường gặp tại [Wiki](https://your-wiki-link.com).
 
 ## Đóng góp
 
