@@ -20,7 +20,11 @@ public final class RustCoreBridge {
     private RustCoreBridge() {}
 
     public static void init() {
-        // Triggers static initializer to load Rust native shared libraries
+        if (sInitialized) {
+            try {
+                nativeApplySocOptimizations();
+            } catch (Throwable ignored) {}
+        }
     }
 
     public static boolean isInitialized() {
@@ -31,4 +35,6 @@ public final class RustCoreBridge {
     public static native String nativeLoginOffline(String username);
     public static native String nativeSearchModrinth(String query, int limit);
     public static native int nativeMapAndroidKeyToGlfw(int androidKeycode);
+    public static native String nativeDetectSocProfileJson();
+    public static native String nativeApplySocOptimizations();
 }
