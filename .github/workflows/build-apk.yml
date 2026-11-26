@@ -9,11 +9,19 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-22.04
+    env:
+      CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 8 (for LWJGL3 stub toolchain)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Set up JDK 21 (for Gradle & Android build)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -27,14 +35,12 @@ jobs:
       - name: Set up Rust toolchain (4 Android ABIs)
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: >
-            aarch64-linux-android,
-            armv7-linux-androideabi,
-            i686-linux-android,
-            x86_64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
       - name: Install cargo-ndk
-        uses: taiki-e/install-action@cargo-ndk
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
 
       - name: Run Rust core unit tests
         run: cargo test --manifest-path rust/Cargo.toml --workspace
@@ -63,13 +69,12 @@ jobs:
           mkdir -p app_pojavlauncher/libs
           wget -q https://github.com/PojavLauncherTeam/LTW/releases/latest/download/ltw-release.aar -O app_pojavlauncher/libs/ltw-release.aar
 
-      - name: Set up Gradle 8.11
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.11"
 
       - name: Build JRE Helper JARs & Signed Debug APK
         run: |
+          sed -i 's/\r$//' gradlew scripts/languagelist_updater.sh
           chmod +x gradlew scripts/languagelist_updater.sh
           ./scripts/languagelist_updater.sh
           ./gradlew :jre_lwjgl3glfw:jar :arc_dns_injector:jar :forge_installer:jar --no-daemon
@@ -85,3 +90,4 @@ jobs:
           path: |
             out/HuTao-Launcher-debug.apk
             out/HuTao-Launcher-debug.sha256
+            
