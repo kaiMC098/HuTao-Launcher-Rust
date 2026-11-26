@@ -1,0 +1,12 @@
+[package]
+name = "linkerhook"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "linkerhook"
+crate-type = ["cdylib"]
+
+[dependencies]
+jni.workspace = true
+libc.workspace = true
