@@ -3,6 +3,7 @@ pub mod controls;
 pub mod models;
 pub mod modloaders;
 pub mod profiles;
+pub mod soc;
 pub mod versions;
 
 #[cfg(test)]
