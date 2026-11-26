@@ -1,0 +1,9 @@
+[package]
+name = "pojav_ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pojav_core = { path = "../pojav_core" }
+serde.workspace = true
+serde_json.workspace = true
