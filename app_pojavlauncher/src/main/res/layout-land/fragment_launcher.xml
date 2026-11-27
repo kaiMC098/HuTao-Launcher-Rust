@@ -212,18 +212,6 @@
                     android:textSize="@dimen/_8ssp" />
 
                 <Button
-                    android:id="@+id/news_button"
-                    android:layout_width="0dp"
-                    android:layout_height="@dimen/_26sdp"
-                    android:layout_marginStart="@dimen/_4sdp"
-                    android:layout_weight="1"
-                    android:background="@drawable/hutao_panel_card_bg"
-                    android:text="Wiki"
-                    android:textAllCaps="false"
-                    android:textColor="@color/secondary_text"
-                    android:textSize="@dimen/_8ssp" />
-
-                <Button
                     android:id="@+id/discord_button"
                     android:layout_width="0dp"
                     android:layout_height="@dimen/_26sdp"
