@@ -11,6 +11,7 @@ import zipfile
 
 REPO_RELEASES_BASE = "https://api.github.com/repos/PojavLauncherTeam/android-openjdk-build-multiarch/releases"
 REPO_TAGS_BASE = "https://api.github.com/repos/PojavLauncherTeam/android-openjdk-build-multiarch/releases/tags"
+ADOPTIUM_V3_BASE = "https://api.adoptium.net/v3/binary/latest"
 
 STAGE_ROOT = os.path.abspath("jre_stage")
 ASSETS_COMPONENTS = os.path.abspath("app_pojavlauncher/src/main/assets/components")
@@ -22,17 +23,24 @@ ABI_TO_POJAV_ARCH = {
     "x86": "x86",
 }
 
+POJAV_TO_ADOPTIUM_ARCH = {
+    "arm64": "aarch64",
+    "arm": "arm",
+    "x86_64": "x64",
+    "x86": "x86",
+}
+
 JRE_SPECS = [
     ("8", "jre", ["jre8-20210825", "jre8"]),
     ("17", "jre-new", ["jre17", "jre17-20210825"]),
-    ("21", "jre-21", ["jre21"]),
+    ("21", "jre-21", ["jre21", "jdk21", "openjdk21"]),
 ]
 
 
 def http_get_json(url: str):
     headers = {"User-Agent": "HuTao-Launcher-CI", "Accept": "application/vnd.github+json"}
     token = os.environ.get("GITHUB_TOKEN")
-    if token:
+    if token and "github.com" in url:
         headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=60) as resp:
@@ -64,7 +72,7 @@ def detect_arch_from_name(name: str):
     low = name.lower()
     if "arm64" in low or "aarch64" in low:
         return "arm64"
-    if "x86_64" in low or "amd64" in low:
+    if "x86_64" in low or "amd64" in low or "x64" in low:
         return "x86_64"
     if re.search(r"[-_](arm32|aarch32|arm)(?:[-_.]|$)", low):
         return "arm"
@@ -75,14 +83,34 @@ def detect_arch_from_name(name: str):
 
 def fetch_all_releases():
     all_rels = []
-    for page in range(1, 6):
-        batch = http_get_json(f"{REPO_RELEASES_BASE}?per_page=100&page={page}")
+    for page in range(1, 8):
+        try:
+            batch = http_get_json(f"{REPO_RELEASES_BASE}?per_page=100&page={page}")
+        except Exception:
+            break
         if not batch:
             break
         all_rels.extend(batch)
         if len(batch) < 100:
             break
     return all_rels
+
+
+def try_adoptium_fallback(major: str, arch: str, standalone_dest: str):
+    adopt_arch = POJAV_TO_ADOPTIUM_ARCH.get(arch)
+    if not adopt_arch:
+        return None
+    url = f"{ADOPTIUM_V3_BASE}/{major}/ga/linux/{adopt_arch}/jdk?jvm_impl=hotspot&heap_size=normal&image_type=jre&vendor=eclipse"
+    try:
+        print(f"[JRE {major}] Trying Eclipse Temurin fallback for {arch} ({adopt_arch})...")
+        download_file(url, standalone_dest)
+        if os.path.getsize(standalone_dest) > 1024 * 1024:
+            return f"temurin-{major}-ga"
+    except Exception as e:
+        print(f"[JRE {major}] Adoptium fallback failed for {arch}: {e}")
+    if os.path.exists(standalone_dest):
+        os.remove(standalone_dest)
+    return None
 
 
 def download_all_jres():
@@ -111,7 +139,7 @@ def download_all_jres():
                 pass
         candidate_releases = releases + extra_rels
 
-        # 1) Try finding an official Pojav binpack zip (e.g. jre8-pojav.zip, jre17-pojav.zip)
+        # 1) Try finding an official Pojav binpack zip (e.g. jre8-pojav.zip, jre17-pojav.zip, jre21-pojav.zip)
         pojav_zip_asset = None
         pojav_tag = f"jre{major}-hutao"
         for rel in candidate_releases:
@@ -144,46 +172,74 @@ def download_all_jres():
                             found_arches[arch_key] = os.path.join(comp_out, base)
             os.remove(zpath)
 
-        # 2) Fetch standalone release tar.xz files for all 4 architectures
+        # 2) Fetch standalone release archives (.tar.xz / .tar.gz) across candidate releases
         standalone_found = {}
         for rel in candidate_releases:
             if rel.get("draft"):
                 continue
             tag = rel.get("tag_name") or f"jre{major}"
+            rname = (rel.get("name") or "").lower()
+            rtag_low = tag.lower()
             for asset in rel.get("assets", []):
                 aname = asset["name"]
                 low = aname.lower()
-                if not low.endswith(".tar.xz"):
+                if not (low.endswith(".tar.xz") or low.endswith(".tar.gz") or low.endswith(".tgz")):
                     continue
-                if "debug" in low or "minimal" in low:
+                if "debug" in low or "minimal" in low or "source" in low:
                     continue
-                if not re.match(rf"^(jre|jdk|openjdk)[-_]?{major}[-_]", low):
+                matches_major = (
+                    re.match(rf"^(jre|jdk|openjdk)[-_]?{major}(?:[-_.]|$)", low)
+                    or f"jre{major}" in low
+                    or f"jdk{major}" in low
+                    or f"jre{major}" in rtag_low
+                    or f"jdk{major}" in rtag_low
+                    or f"jre {major}" in rname
+                    or f"jdk {major}" in rname
+                )
+                if not matches_major:
                     continue
                 arch = detect_arch_from_name(low)
                 if arch and arch not in standalone_found:
                     standalone_found[arch] = (tag, aname, asset["browser_download_url"])
-            if len(standalone_found) == 4:
-                break
 
         for arch, (tag, aname, url) in sorted(standalone_found.items()):
             standalone_dest = os.path.join(standalone_dir, f"jre{major}-{arch}.tar.xz")
-            print(f"[JRE {major}] Downloading standalone {aname} -> {os.path.basename(standalone_dest)}")
-            download_file(url, standalone_dest)
+            print(f"[JRE {major}] Downloading {aname} -> {os.path.basename(standalone_dest)}")
+            try:
+                download_file(url, standalone_dest)
+                if arch not in found_arches:
+                    shutil.copy2(standalone_dest, os.path.join(comp_out, f"bin-{arch}.tar.xz"))
+                    found_arches[arch] = os.path.join(comp_out, f"bin-{arch}.tar.xz")
+                    pojav_tag = tag
+            except Exception as e:
+                print(f"[JRE {major}] Download failed for {aname}: {e}")
+                if os.path.exists(standalone_dest):
+                    os.remove(standalone_dest)
+
+        # 3) Fallback for any arch still missing (especially JRE 21)
+        for arch in ["arm64", "arm", "x86_64", "x86"]:
             if arch not in found_arches:
-                shutil.copy2(standalone_dest, os.path.join(comp_out, f"bin-{arch}.tar.xz"))
-                found_arches[arch] = os.path.join(comp_out, f"bin-{arch}.tar.xz")
-                pojav_tag = tag
-
-        if not os.path.exists(os.path.join(comp_out, "universal.tar.xz")) and found_arches:
-            make_stub_universal_tar_xz(os.path.join(comp_out, "universal.tar.xz"), f"jre{major}-{pojav_tag}")
-
-        if not os.path.exists(os.path.join(comp_out, "version")) and found_arches:
-            with open(os.path.join(comp_out, "version"), "w", encoding="utf-8") as vf:
-                vf.write(pojav_tag)
+                standalone_dest = os.path.join(standalone_dir, f"jre{major}-{arch}.tar.xz")
+                ftag = try_adoptium_fallback(major, arch, standalone_dest)
+                if ftag:
+                    shutil.copy2(standalone_dest, os.path.join(comp_out, f"bin-{arch}.tar.xz"))
+                    found_arches[arch] = os.path.join(comp_out, f"bin-{arch}.tar.xz")
+                    pojav_tag = ftag
 
         print(f"[JRE {major}] Ready arches: {sorted(found_arches.keys())}")
         if not found_arches:
+            if major == "21":
+                print("[JRE 21] Warning: No JRE 21 archive available upstream yet; skipping JRE 21 bundle cleanly.")
+                shutil.rmtree(comp_out, ignore_errors=True)
+                continue
             raise RuntimeError(f"Failed to locate any release archive for JRE {major}!")
+
+        if not os.path.exists(os.path.join(comp_out, "universal.tar.xz")):
+            make_stub_universal_tar_xz(os.path.join(comp_out, "universal.tar.xz"), f"jre{major}-{pojav_tag}")
+
+        if not os.path.exists(os.path.join(comp_out, "version")):
+            with open(os.path.join(comp_out, "version"), "w", encoding="utf-8") as vf:
+                vf.write(pojav_tag)
 
 
 def stage_for_target(target: str):
