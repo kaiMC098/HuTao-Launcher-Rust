@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MultiRTUtils {
 
@@ -73,17 +74,18 @@ public class MultiRTUtils {
         if(dest.exists()) FileUtils.deleteDirectory(dest);
         uncompressTarXZ(runtimeInputStream,dest);
         runtimeInputStream.close();
+        flattenSingleRootDirIfNeeded(dest);
         unpack200(nativeLibDir,RUNTIME_FOLDER + "/" + name);
         ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
-        read(name);
+        forceReread(name);
     }
 
     public static void postPrepare(String name) throws IOException {
         File dest = new File(RUNTIME_FOLDER,"/" + name);
         if(!dest.exists()) return;
-        Runtime runtime = read(name);
+        Runtime runtime = forceReread(name);
         String libFolder = "lib";
-        if(new File(dest,libFolder + "/" + runtime.arch).exists()) libFolder = libFolder + "/" + runtime.arch;
+        if(runtime.arch != null && new File(dest,libFolder + "/" + runtime.arch).exists()) libFolder = libFolder + "/" + runtime.arch;
         File ftIn = new File(dest, libFolder + "/libfreetype.so.6");
         File ftOut = new File(dest, libFolder + "/libfreetype.so");
         if (ftIn.exists() && (!ftOut.exists() || ftIn.length() != ftOut.length())) {
@@ -99,6 +101,7 @@ public class MultiRTUtils {
         if(dest.exists()) FileUtils.deleteDirectory(dest);
         installRuntimeNamedNoRemove(universalFileInputStream,dest);
         installRuntimeNamedNoRemove(platformBinsInputStream,dest);
+        flattenSingleRootDirIfNeeded(dest);
 
         unpack200(NATIVE_LIB_DIR,RUNTIME_FOLDER + "/" + name);
 
@@ -112,16 +115,50 @@ public class MultiRTUtils {
         forceReread(name);
     }
 
+    private static void flattenSingleRootDirIfNeeded(File dest) throws IOException {
+        if (new File(dest, "release").exists()) return;
+        File[] children = dest.listFiles();
+        if (children == null) return;
+        File candidateDir = null;
+        for (File c : children) {
+            if (c.isDirectory() && new File(c, "release").exists()) {
+                candidateDir = c;
+                break;
+            }
+        }
+        if (candidateDir == null) return;
+        File[] innerFiles = candidateDir.listFiles();
+        if (innerFiles != null) {
+            for (File f : innerFiles) {
+                File target = new File(dest, f.getName());
+                if (target.exists()) FileUtils.forceDelete(target);
+                FileUtils.moveToDirectory(f, dest, false);
+            }
+        }
+        FileUtils.deleteDirectory(candidateDir);
+    }
+
+    private static boolean hasValidJvmBinary(File runtimeDir) {
+        if (!runtimeDir.isDirectory()) return false;
+        Collection<File> soFiles = listFiles(runtimeDir, new String[]{"so"}, true);
+        for (File f : soFiles) {
+            if ("libjvm.so".equals(f.getName()) && f.length() > 1024) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static String readInternalRuntimeVersion(String name) {
-        File versionFile = new File(RUNTIME_FOLDER,"/" + name + "/pojav_version");
+        File runtimeDir = new File(RUNTIME_FOLDER, name);
+        File versionFile = new File(runtimeDir, "pojav_version");
         try {
-            if (versionFile.exists()) {
+            if (versionFile.exists() && hasValidJvmBinary(runtimeDir)) {
                 return Tools.read(versionFile.getAbsolutePath());
-            }else{
+            } else {
                 return null;
             }
-        }catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
@@ -150,8 +187,9 @@ public class MultiRTUtils {
     public static Runtime read(String name) {
         Runtime returnRuntime = sCache.get(name);
         if(returnRuntime != null) return returnRuntime;
-        File release = new File(RUNTIME_FOLDER,name+"/release");
-        if(!release.exists()) {
+        File runtimeDir = new File(RUNTIME_FOLDER, name);
+        File release = new File(runtimeDir, "release");
+        if(!release.exists() || !hasValidJvmBinary(runtimeDir)) {
             return new Runtime(name);
         }
         try {
@@ -202,7 +240,9 @@ public class MultiRTUtils {
 
     @SuppressWarnings("SameParameterValue")
     private static void copyDummyNativeLib(String name, File dest, String libFolder) throws IOException {
-        File fileLib = new File(dest, "/"+libFolder + "/" + name);
+        File targetDir = new File(dest, libFolder);
+        if (!targetDir.exists() && !targetDir.mkdirs()) return;
+        File fileLib = new File(targetDir, name);
         FileInputStream is = new FileInputStream(new File(NATIVE_LIB_DIR, name));
         FileOutputStream os = new FileOutputStream(fileLib);
         IOUtils.copy(is, os);
@@ -219,28 +259,20 @@ public class MultiRTUtils {
         net.kdt.pojavlaunch.utils.FileUtils.ensureDirectory(dest);
 
         byte[] buffer = new byte[8192];
+        List<Map.Entry<File, String>> pendingSymlinks = new ArrayList<>();
         TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new XZCompressorInputStream(tarFileInputStream)
         );
         TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
-        // tarIn is a TarArchiveInputStream
         while (tarEntry != null) {
 
             final String tarEntryName = tarEntry.getName();
-            // publishProgress(null, "Unpacking " + tarEntry.getName());
             ProgressLayout.setProgress(ProgressLayout.UNPACK_RUNTIME, 100, R.string.global_unpacking, tarEntryName);
 
-            File destPath = new File(dest, tarEntry.getName());
+            File destPath = new File(dest, tarEntryName);
             net.kdt.pojavlaunch.utils.FileUtils.ensureParentDirectory(destPath);
             if (tarEntry.isSymbolicLink()) {
-                try {
-                    // android.system.Os
-                    // Libcore one support all Android versions
-                    Os.symlink(tarEntry.getName(), tarEntry.getLinkName());
-                } catch (Throwable e) {
-                    Log.e("MultiRT", e.toString());
-                }
-
+                pendingSymlinks.add(new java.util.AbstractMap.SimpleEntry<>(destPath, tarEntry.getLinkName()));
             } else if (tarEntry.isDirectory()) {
                 net.kdt.pojavlaunch.utils.FileUtils.ensureDirectory(destPath);
             } else if (!destPath.exists() || destPath.length() != tarEntry.getSize()) {
@@ -251,5 +283,28 @@ public class MultiRTUtils {
             tarEntry = tarIn.getNextTarEntry();
         }
         tarIn.close();
+
+        // Resolve symbolic links AFTER all files are extracted
+        for (int pass = 0; pass < 2; pass++) {
+            for (Map.Entry<File, String> linkEntry : pendingSymlinks) {
+                File linkFile = linkEntry.getKey();
+                if (linkFile.exists()) continue;
+                String linkTarget = linkEntry.getValue();
+                try {
+                    Os.symlink(linkTarget, linkFile.getAbsolutePath());
+                } catch (Throwable ignored) {}
+                if (!linkFile.exists()) {
+                    File resolvedTarget = new File(linkFile.getParentFile(), linkTarget);
+                    try {
+                        resolvedTarget = resolvedTarget.getCanonicalFile();
+                        if (resolvedTarget.isFile()) {
+                            FileUtils.copyFile(resolvedTarget, linkFile);
+                        }
+                    } catch (Throwable e) {
+                        Log.w("MultiRT", "Could not materialize symlink " + linkFile + " -> " + linkTarget + ": " + e);
+                    }
+                }
+            }
+        }
     }
 }
