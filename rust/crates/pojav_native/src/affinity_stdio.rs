@@ -1,11 +1,15 @@
 use jni::objects::{JClass, JObject, JObjectArray, JString};
 use jni::sys::{jboolean, jint, jlong, JNI_FALSE, JNI_TRUE};
 use jni::JNIEnv;
+use once_cell::sync::Lazy;
 use std::ffi::CString;
-use std::fs;
+use std::fs::{self, File, OpenOptions};
+use std::io::Write;
 use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::Mutex;
 
 static SHARED_AWT_SURFACE: AtomicI64 = AtomicI64::new(0);
+static LOG_FILE: Lazy<Mutex<Option<File>>> = Lazy::new(|| Mutex::new(None));
 
 #[no_mangle]
 pub extern "C" fn bigcore_set_affinity() {
@@ -143,17 +147,34 @@ pub extern "system" fn Java_net_kdt_pojavlaunch_utils_JREUtils_setupExitMethod(
 
 #[no_mangle]
 pub extern "system" fn Java_net_kdt_pojavlaunch_Logger_begin(
-    _env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
-    _log_file_path: JString,
-) {}
+    log_file_path: JString,
+) {
+    let Ok(s) = env.get_string(&log_file_path) else { return; };
+    let path_str = s.to_str().unwrap_or_default().to_string();
+    if let Ok(file) = OpenOptions::new().create(true).write(true).truncate(true).open(&path_str) {
+        if let Ok(mut guard) = LOG_FILE.lock() {
+            *guard = Some(file);
+        }
+    }
+}
 
 #[no_mangle]
 pub extern "system" fn Java_net_kdt_pojavlaunch_Logger_appendToLog(
-    _env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
-    _text: JString,
-) {}
+    text: JString,
+) {
+    let Ok(s) = env.get_string(&text) else { return; };
+    let line = s.to_str().unwrap_or_default().to_string();
+    if let Ok(mut guard) = LOG_FILE.lock() {
+        if let Some(ref mut f) = *guard {
+            let _ = writeln!(f, "{}", line);
+            let _ = f.flush();
+        }
+    }
+}
 
 #[no_mangle]
 pub extern "system" fn Java_net_kdt_pojavlaunch_Logger_setLogListener(

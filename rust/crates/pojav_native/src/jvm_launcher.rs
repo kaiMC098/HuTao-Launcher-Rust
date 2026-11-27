@@ -27,14 +27,14 @@ unsafe fn launch_jvm_native(args: Vec<CString>) -> i32 {
         return -1;
     }
 
+    // Reset standard signal handlers to SIG_DFL (NEVER SIG_IGN for SIGSEGV,
+    // because HotSpot JVM installs its own SIGSEGV handler for null-check traps & safepoints).
     let mut clean_sa: libc::sigaction = std::mem::zeroed();
-    for sigid in libc::SIGHUP..64 {
-        if sigid == libc::SIGSEGV {
-            clean_sa.sa_sigaction = libc::SIG_IGN;
-        } else {
-            clean_sa.sa_sigaction = libc::SIG_DFL;
+    clean_sa.sa_sigaction = libc::SIG_DFL;
+    for sigid in libc::SIGHUP..32 {
+        if sigid != libc::SIGKILL && sigid != libc::SIGSTOP {
+            libc::sigaction(sigid, &clean_sa, std::ptr::null_mut());
         }
-        libc::sigaction(sigid, &clean_sa, std::ptr::null_mut());
     }
 
     let sym_name = CString::new("JLI_Launch").unwrap();
@@ -45,12 +45,15 @@ unsafe fn launch_jvm_native(args: Vec<CString>) -> i32 {
     let jli_launch: JliLaunchFn = std::mem::transmute(sym);
 
     let mut argv_ptrs: Vec<*mut c_char> = args.iter().map(|s| s.as_ptr() as *mut c_char).collect();
+    let argc = argv_ptrs.len() as c_int;
     let full_ver = CString::new("1.8.0-internal").unwrap();
     let dot_ver = CString::new("1.8").unwrap();
     let prog = argv_ptrs.first().copied().unwrap_or(full_ver.as_ptr() as *mut c_char);
+    // Null-terminate argv as required by POSIX / JLI_Launch
+    argv_ptrs.push(std::ptr::null_mut());
 
     jli_launch(
-        argv_ptrs.len() as c_int,
+        argc,
         argv_ptrs.as_mut_ptr(),
         0,
         std::ptr::null(),

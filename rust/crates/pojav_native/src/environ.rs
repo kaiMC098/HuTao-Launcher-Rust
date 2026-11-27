@@ -1,6 +1,6 @@
 use jni::sys::{jboolean, jbyte, jclass, jlong, jmethodID, JNIEnv, JavaVM};
 use once_cell::sync::Lazy;
-use std::ffi::c_void;
+use std::ffi::{c_int, c_void};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
@@ -12,6 +12,14 @@ pub const EVENT_TYPE_CURSOR_ENTER: i32 = 1002;
 pub const EVENT_TYPE_KEY: i32 = 1005;
 pub const EVENT_TYPE_MOUSE_BUTTON: i32 = 1006;
 pub const EVENT_TYPE_SCROLL: i32 = 1007;
+
+pub type GlfwCharFun = unsafe extern "C" fn(*mut c_void, u32);
+pub type GlfwCharModsFun = unsafe extern "C" fn(*mut c_void, u32, c_int);
+pub type GlfwCursorEnterFun = unsafe extern "C" fn(*mut c_void, c_int);
+pub type GlfwCursorPosFun = unsafe extern "C" fn(*mut c_void, f64, f64);
+pub type GlfwKeyFun = unsafe extern "C" fn(*mut c_void, c_int, c_int, c_int, c_int);
+pub type GlfwMouseButtonFun = unsafe extern "C" fn(*mut c_void, c_int, c_int, c_int);
+pub type GlfwScrollFun = unsafe extern "C" fn(*mut c_void, f64, f64);
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -77,6 +85,14 @@ pub struct PojavEnviron {
     pub saved_width: i32,
     pub saved_height: i32,
     pub gamepad_state: GLFWGamepadState,
+    // Native GLFW callback pointers registered by LWJGL3
+    pub cb_char: usize,
+    pub cb_char_mods: usize,
+    pub cb_cursor_enter: usize,
+    pub cb_cursor_pos: usize,
+    pub cb_key: usize,
+    pub cb_mouse_button: usize,
+    pub cb_scroll: usize,
 }
 
 unsafe impl Send for PojavEnviron {}
@@ -131,6 +147,13 @@ impl PojavEnviron {
                 buttons: [0; 15],
                 axes: [0.0; 6],
             },
+            cb_char: 0,
+            cb_char_mods: 0,
+            cb_cursor_enter: 0,
+            cb_cursor_pos: 0,
+            cb_key: 0,
+            cb_mouse_button: 0,
+            cb_scroll: 0,
         }
     }
 
