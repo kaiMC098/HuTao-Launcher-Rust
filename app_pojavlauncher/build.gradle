@@ -119,6 +119,12 @@ android {
         versionName getVersionName()
         multiDexEnabled true //important
         resValue 'string', 'curseforge_api_key', getCFApiKey()
+        def targetAbi = project.findProperty("targetAbi")
+        if (targetAbi != null && !targetAbi.toString().trim().isEmpty()) {
+            ndk {
+                abiFilters targetAbi.toString().trim()
+            }
+        }
     }
 
     buildTypes {
