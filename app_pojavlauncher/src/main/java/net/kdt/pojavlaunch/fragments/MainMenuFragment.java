@@ -128,8 +128,7 @@ public class MainMenuFragment extends Fragment {
         } catch (Throwable ignored) {}
 
         String title = "CHƠI (PLAY)";
-        SpannableStringBuilder ssb = new SpannableStringBuilder(title + "
-" + subtitle);
+                SpannableStringBuilder ssb = new SpannableStringBuilder(title + "\n" + subtitle);
         ssb.setSpan(new RelativeSizeSpan(1.08f), 0, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ssb.setSpan(new RelativeSizeSpan(0.72f), title.length() + 1, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ssb.setSpan(new ForegroundColorSpan(0xFFFFE5DC), title.length() + 1, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
