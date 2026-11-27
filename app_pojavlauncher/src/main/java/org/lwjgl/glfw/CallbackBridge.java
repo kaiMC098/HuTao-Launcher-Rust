@@ -226,17 +226,17 @@ public class CallbackBridge {
         sDirectGamepadEnableHandler = new WeakReference<>(h);
     }
 
-    @Keep @CriticalNative public static native void nativeSetUseInputStackQueue(boolean useInputStackQueue);
+    @Keep public static native void nativeSetUseInputStackQueue(boolean useInputStackQueue);
 
-    @Keep @CriticalNative private static native boolean nativeSendChar(char codepoint);
+    @Keep private static native boolean nativeSendChar(char codepoint);
     // GLFW: GLFWCharModsCallback deprecated, but is Minecraft still use?
-    @Keep @CriticalNative private static native boolean nativeSendCharMods(char codepoint, int mods);
-    @Keep @CriticalNative private static native void nativeSendKey(int key, int scancode, int action, int mods);
+    @Keep private static native boolean nativeSendCharMods(char codepoint, int mods);
+    @Keep private static native void nativeSendKey(int key, int scancode, int action, int mods);
     // private static native void nativeSendCursorEnter(int entered);
-    @Keep @CriticalNative private static native void nativeSendCursorPos(float x, float y);
-    @Keep @CriticalNative private static native void nativeSendMouseButton(int button, int action, int mods);
-    @Keep @CriticalNative private static native void nativeSendScroll(double xoffset, double yoffset);
-    @Keep @CriticalNative private static native void nativeSendScreenSize(int width, int height);
+    @Keep private static native void nativeSendCursorPos(float x, float y);
+    @Keep private static native void nativeSendMouseButton(int button, int action, int mods);
+    @Keep private static native void nativeSendScroll(double xoffset, double yoffset);
+    @Keep private static native void nativeSendScreenSize(int width, int height);
     public static native void nativeSetWindowAttrib(int attrib, int value);
     private static native ByteBuffer nativeCreateGamepadButtonBuffer();
     private static native ByteBuffer nativeCreateGamepadAxisBuffer();
