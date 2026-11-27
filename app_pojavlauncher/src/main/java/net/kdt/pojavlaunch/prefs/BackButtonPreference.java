@@ -26,6 +26,7 @@ public class BackButtonPreference extends Preference {
         if(getIcon() == null){
             setIcon(R.drawable.ic_arrow_back_white);
         }
+        setLayoutResource(R.layout.pref_hutao_back);
     }
 
 
