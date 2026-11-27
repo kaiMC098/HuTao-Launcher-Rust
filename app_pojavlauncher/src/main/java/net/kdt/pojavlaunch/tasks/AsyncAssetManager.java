@@ -25,37 +25,56 @@ public class AsyncAssetManager {
     private AsyncAssetManager(){}
 
     /**
-     * Attempt to install the java 8 runtime, if necessary
-     * @param am App context
+     * Unpack all bundled internal Java runtimes (JRE 8, JRE 17, JRE 21) if included in the APK.
+     * @param am App AssetManager
      */
     public static void unpackRuntime(AssetManager am) {
-        /* Check if JRE is included */
-        String rt_version = null;
-        String current_rt_version = MultiRTUtils.readInternalRuntimeVersion("Internal");
-        try {
-            rt_version = Tools.read(am.open("components/jre/version"));
-        } catch (IOException e) {
-            Log.e("JREAuto", "JRE was not included on this APK.", e);
-        }
-        String exactJREName = MultiRTUtils.getExactJreName(8);
-        if(current_rt_version == null && exactJREName != null && !exactJREName.equals("Internal")/*this clause is for when the internal runtime is goofed*/) return;
-        if(rt_version == null) return;
-        if(rt_version.equals(current_rt_version)) return;
+        final String[][] bundledRuntimes = new String[][]{
+                {"components/jre", "Internal"},
+                {"components/jre-new", "Internal-17"},
+                {"components/jre-21", "Internal-21"}
+        };
 
-        // Install the runtime in an async manner, hope for the best
-        String finalRt_version = rt_version;
-        sExecutorService.execute(() -> {
-
-            try {
-                MultiRTUtils.installRuntimeNamedBinpack(
-                        am.open("components/jre/universal.tar.xz"),
-                        am.open("components/jre/bin-" + archAsString(Tools.DEVICE_ARCHITECTURE) + ".tar.xz"),
-                        "Internal", finalRt_version);
-                MultiRTUtils.postPrepare("Internal");
-            }catch (IOException e) {
-                Log.e("JREAuto", "Internal JRE unpack failed", e);
+        boolean anyPending = false;
+        for (String[] entry : bundledRuntimes) {
+            if (needsUnpack(am, entry[0], entry[1])) {
+                anyPending = true;
+                break;
             }
+        }
+        if (!anyPending) return;
+
+        sExecutorService.execute(() -> {
+            String arch = archAsString(Tools.DEVICE_ARCHITECTURE);
+            for (String[] entry : bundledRuntimes) {
+                String assetDir = entry[0];
+                String runtimeName = entry[1];
+                try {
+                    String rtVersion = Tools.read(am.open(assetDir + "/version"));
+                    String currentVersion = MultiRTUtils.readInternalRuntimeVersion(runtimeName);
+                    if (rtVersion == null || rtVersion.equals(currentVersion)) continue;
+
+                    InputStream uniStream = am.open(assetDir + "/universal.tar.xz");
+                    InputStream binStream = am.open(assetDir + "/bin-" + arch + ".tar.xz");
+                    MultiRTUtils.installRuntimeNamedBinpack(uniStream, binStream, runtimeName, rtVersion);
+                    MultiRTUtils.postPrepare(runtimeName);
+                    Log.i("JREAuto", "Unpacked bundled runtime: " + runtimeName + " (" + arch + ")");
+                } catch (IOException e) {
+                    Log.i("JREAuto", "Runtime " + runtimeName + " not bundled for " + arch + ": " + e.getMessage());
+                }
+            }
+            ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
         });
+    }
+
+    private static boolean needsUnpack(AssetManager am, String assetDir, String runtimeName) {
+        try {
+            String rtVersion = Tools.read(am.open(assetDir + "/version"));
+            String currentVersion = MultiRTUtils.readInternalRuntimeVersion(runtimeName);
+            return rtVersion != null && !rtVersion.equals(currentVersion);
+        } catch (IOException ignored) {
+            return false;
+        }
     }
 
     /** Unpack single files, with no regard to version tracking */
@@ -81,14 +100,12 @@ public class AsyncAssetManager {
             try {
                 unpackComponent(ctx, "caciocavallo", false);
                 unpackComponent(ctx, "caciocavallo17", false);
-                // Since the Java module system doesn't allow multiple JARs to declare the same module,
-                // we repack them to a single file here
                 unpackComponent(ctx, "lwjgl3", false);
                 unpackComponent(ctx, "security", true);
                 unpackComponent(ctx, "arc_dns_injector", true);
                 unpackComponent(ctx, "forge_installer", true);
             } catch (IOException e) {
-                Log.e("AsyncAssetManager", "Failed o unpack components !",e );
+                Log.e("AsyncAssetManager", "Failed to unpack components !", e);
             }
             ProgressLayout.clearProgress(ProgressLayout.EXTRACT_COMPONENTS);
         });
