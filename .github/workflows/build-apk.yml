@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -69,24 +70,70 @@ jobs:
           mkdir -p app_pojavlauncher/libs
           wget -q https://github.com/PojavLauncherTeam/LTW/releases/latest/download/ltw-release.aar -O app_pojavlauncher/libs/ltw-release.aar
 
+      - name: Download Java Runtimes (JRE 8, 17, 21 - Multiarch)
+        run: python3 scripts/download_jres.py --download
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build JRE Helper JARs & Signed Debug APK
+      - name: Build JRE Helper JARs, Per-ABI APKs & Universal All-in-One APK
         run: |
           sed -i 's/\r$//' gradlew scripts/languagelist_updater.sh
           chmod +x gradlew scripts/languagelist_updater.sh
           ./scripts/languagelist_updater.sh
           ./gradlew :jre_lwjgl3glfw:jar :arc_dns_injector:jar :forge_installer:jar --no-daemon
-          ./gradlew :app_pojavlauncher:assembleDebug --no-daemon
-          mkdir -p out
-          cp app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk out/HuTao-Launcher-debug.apk
-          sha256sum out/HuTao-Launcher-debug.apk > out/HuTao-Launcher-debug.sha256
 
-      - name: Upload APK Artifact
+          mkdir -p out
+          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
+            echo "=== Building HuTao-Launcher-${abi}.apk (with JRE 8, 17, 21 for ${abi}) ==="
+            python3 scripts/download_jres.py --stage "${abi}"
+            ./gradlew :app_pojavlauncher:assembleDebug -PtargetAbi="${abi}" --no-daemon
+            cp app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk "out/HuTao-Launcher-${abi}.apk"
+          done
+
+          echo "=== Building HuTao-Launcher-all.apk (Universal All-in-One with ALL Java Runtimes) ==="
+          python3 scripts/download_jres.py --stage all
+          ./gradlew :app_pojavlauncher:assembleDebug --no-daemon
+          cp app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk out/HuTao-Launcher-all.apk
+
+          (cd out && sha256sum *.apk > SHA256SUMS.txt)
+          ls -lh out/
+
+      - name: Upload APK (arm64-v8a - Most Android Phones)
         uses: actions/upload-artifact@v4
         with:
-          name: HuTao-Launcher-APK
+          name: HuTao-Launcher-arm64-v8a
+          path: out/HuTao-Launcher-arm64-v8a.apk
+
+      - name: Upload APK (armeabi-v7a - 32-bit Android)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuTao-Launcher-armeabi-v7a
+          path: out/HuTao-Launcher-armeabi-v7a.apk
+
+      - name: Upload APK (x86_64 - Emulator / Chromebook)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuTao-Launcher-x86_64
+          path: out/HuTao-Launcher-x86_64.apk
+
+      - name: Upload APK (x86 - 32-bit Emulator)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuTao-Launcher-x86
+          path: out/HuTao-Launcher-x86.apk
+
+      - name: Upload APK (All-in-One Universal + All Java Runtimes)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuTao-Launcher-all
           path: |
-            out/HuTao-Launcher-debug.apk
-            out/HuTao-Launcher-debug.sha256
+            out/HuTao-Launcher-all.apk
+            out/SHA256SUMS.txt
+
+      - name: Upload Standalone Java Runtimes (.tar.xz)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuTao-Java-Runtimes
+          path: jre_stage/standalone/*.tar.xz
+          if-no-files-found: ignore
