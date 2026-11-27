@@ -1,26 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Hu Tao (Genshin Impact - Wangsheng Pyro) Palette -->
     <color name="control_button_color">#592B1116</color>
-    <color name="control_button_pressed_color">#8CD93829</color>
+    <color name="control_button_pressed_color">#8CE84C24</color>
 
-    <!-- Pyro Crimson & Lantern Gold Accents -->
-    <color name="minebutton_color">#D93829</color>
-    <color name="hutao_crimson_primary">#D93829</color>
-    <color name="hutao_crimson_bright">#F2523D</color>
-    <color name="hutao_crimson_deep">#7A191E</color>
+    <!-- HuTao Launcher (Rust) Pyro Crimson & Orange Palette -->
+    <color name="minebutton_color">#E84C24</color>
+    <color name="hutao_crimson_primary">#E84C24</color>
+    <color name="hutao_crimson_bright">#F25E36</color>
+    <color name="hutao_crimson_deep">#4B1215</color>
     <color name="hutao_amber_gold">#F5B041</color>
-    <color name="hutao_plum_border">#6E262E</color>
+    <color name="hutao_plum_border">#5E2226</color>
 
-    <!-- Wangsheng Obsidian-Burgundy Surfaces -->
-    <color name="background_app">#120A0C</color>
-    <color name="divider">#6E262E</color>
-    <color name="background_overlay">#34161D</color>
-    <color name="background_status_bar">#1E0E13</color>
-    <color name="background_bottom_bar">#1A0C10</color>
-    <color name="hutao_card_surface">#231116</color>
+    <!-- Deep Burgundy Surfaces -->
+    <color name="background_app">#2C0A0C</color>
+    <color name="divider">#5E2226</color>
+    <color name="background_overlay">#3B1316</color>
+    <color name="background_status_bar">#3D0F12</color>
+    <color name="background_bottom_bar">#220709</color>
+    <color name="hutao_card_surface">#2B0C0E</color>
 
-    <!-- Warm Ivory & Rose-Ash Typography -->
-    <color name="primary_text">#FFF5F2</color>
-    <color name="secondary_text">#D8B4B8</color>
+    <!-- Warm White & Soft Rose-Ash Text -->
+    <color name="primary_text">#FFF7F5</color>
+    <color name="secondary_text">#D9B8BA</color>
 </resources>
