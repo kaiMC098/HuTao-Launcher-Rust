@@ -24,14 +24,6 @@ Khám phá thế giới *Minecraft: Java Edition* trên điện thoại theo m�
 
 ---
 
-## 🚀 Hướng dẫn xuất file `.apk` trên GitHub
-
-1. Đẩy toàn bộ mã nguồn trong kho lưu trữ này lên nhánh `main` hoặc `master` trên GitHub của bạn.
-2. Mở tab **Actions** trên GitHub → chọn workflow **Build HuTao Launcher Rust APK**.
-3. Sau khi quá trình biên dịch hoàn tất, tải tệp **`HuTao-Launcher-debug.apk`** trong mục **Artifacts** và cài đặt lên điện thoại Android.
-
----
-
 ## 🛠️ Cấu trúc mã nguồn
 
 ```text
