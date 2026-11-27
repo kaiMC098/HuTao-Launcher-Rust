@@ -2,194 +2,291 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/fragment_menu_main"
-    android:gravity="top"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:orientation="vertical"
-    android:background="@drawable/hutao_launcher_bg">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
 
-    <!-- Left Hu Tao Character Showcase Card in Landscape -->
-    <LinearLayout
-        android:id="@+id/hutao_header_card"
-        android:layout_width="@dimen/_145sdp"
+    <!-- Left Column: Hero Art + Welcome + CHƠI (PLAY) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/hutao_left_hero_col"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="@dimen/_8sdp"
-        android:layout_marginTop="@dimen/_6sdp"
-        android:layout_marginBottom="@dimen/_8sdp"
-        android:background="@drawable/hutao_banner_card"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="@dimen/_8sdp"
-        app:layout_constraintBottom_toTopOf="@id/_background_display_view"
+        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginTop="@dimen/_4sdp"
+        android:layout_marginEnd="@dimen/_6sdp"
+        android:layout_marginBottom="@dimen/_4sdp"
+        app:layout_constraintBottom_toTopOf="@id/hutao_rust_status_bar"
+        app:layout_constraintEnd_toStartOf="@id/hutao_right_scroll"
+        app:layout_constraintHorizontal_weight="1.05"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
-            android:id="@+id/hutao_avatar_badge"
-            android:layout_width="@dimen/_64sdp"
-            android:layout_height="@dimen/_64sdp"
+            android:id="@+id/hutao_hero_image"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginBottom="@dimen/_16sdp"
             android:contentDescription="@string/app_short_name"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_hutao_avatar" />
+            android:scaleType="centerCrop"
+            android:src="@drawable/hutao_hero_card_art"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
+            android:id="@+id/hutao_welcome_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/_6sdp"
+            android:layout_marginBottom="@dimen/_26sdp"
             android:fontFamily="@font/noto_sans_bold"
-            android:gravity="center"
-            android:text="@string/app_short_name"
-            android:textColor="@color/hutao_amber_gold"
-            android:textSize="@dimen/_12ssp" />
+            android:shadowColor="#CC000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="6"
+            android:text="Welcome back, Traveler!"
+            android:textColor="@color/primary_text"
+            android:textSize="@dimen/_13ssp"
+            app:layout_constraintBottom_toBottomOf="@id/hutao_hero_image"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
 
-        <TextView
-            android:layout_width="wrap_content"
+        <com.kdt.mcgui.MineButton
+            android:id="@+id/play_button"
+            android:layout_width="@dimen/_165sdp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/_2sdp"
             android:gravity="center"
-            android:text="Pyro • Rust Core"
-            android:textColor="@color/secondary_text"
-            android:textSize="@dimen/_9ssp" />
-    </LinearLayout>
+            android:lineSpacingExtra="1dp"
+            android:minHeight="@dimen/_40sdp"
+            android:paddingHorizontal="@dimen/_12sdp"
+            android:paddingVertical="@dimen/_4sdp"
+            android:text="CHƠI (PLAY)"
+            android:textAllCaps="false"
+            android:textColor="@color/primary_text"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Right Column: Profile selector + 4-row menu + Memory card -->
     <ScrollView
+        android:id="@+id/hutao_right_scroll"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="@dimen/_6sdp"
-        android:layout_marginEnd="@dimen/_8sdp"
-        android:layout_marginTop="@dimen/_6sdp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@id/_background_display_view"
+        android:layout_marginStart="@dimen/_4sdp"
+        android:layout_marginTop="@dimen/_4sdp"
+        android:layout_marginEnd="@dimen/_10sdp"
+        android:layout_marginBottom="@dimen/_4sdp"
+        app:layout_constraintBottom_toTopOf="@id/hutao_rust_status_bar"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/hutao_header_card"
+        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintStart_toEndOf="@id/hutao_left_hero_col"
         app:layout_constraintTop_toTopOf="parent">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/center_guideline"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_34sdp"
+                android:background="@drawable/hutao_panel_card_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/_6sdp">
+
+                <com.kdt.mcgui.mcVersionSpinner
+                    android:id="@+id/mc_version_spinner"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:drawableEnd="@drawable/spinner_arrow"
+                    app:drawableEndPadding="@dimen/_1sdp"
+                    app:drawableEndSize="@dimen/_10sdp"
+                    app:drawableStartIntegerScaling="true"
+                    app:drawableStartSize="@dimen/_22sdp" />
+
+                <ImageButton
+                    android:id="@+id/edit_profile_button"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/global_edit"
+                    android:src="@drawable/ic_edit_profile"
+                    android:tint="@color/hutao_amber_gold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_6sdp"
+                android:background="@drawable/hutao_panel_card_bg"
                 android:orientation="vertical"
-                app:layout_constraintGuide_percent="0.5"/>
-            <com.kdt.mcgui.LauncherMenuButton
-                android:id="@+id/news_button"
-                style="@style/LauncherMenuButton.Universal"
-                android:layout_width="0dp"
-                android:layout_marginEnd="@dimen/_3sdp"
-                android:drawableStart="@drawable/ic_menu_news"
-                android:text="@string/mcl_tab_wiki"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/social_divider"/>
-            <View
-                android:id="@+id/social_divider"
-                style="@style/LauncherFragment_Divider"
-                android:layout_marginVertical="@dimen/padding_heavy"
-                app:layout_constraintTop_toTopOf="@id/news_button"
-                app:layout_constraintStart_toStartOf="@id/center_guideline"
-                app:layout_constraintEnd_toEndOf="@id/center_guideline"
-                app:layout_constraintBottom_toBottomOf="@id/news_button"/>
-            <com.kdt.mcgui.LauncherMenuButton
-                android:id="@+id/discord_button"
-                style="@style/LauncherMenuButton.Universal"
-                android:layout_width="0dp"
-                android:layout_marginStart="@dimen/_3sdp"
-                android:drawableStart="@drawable/ic_discord"
-                android:text="@string/mcl_button_discord"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/social_divider"/>
+                android:paddingVertical="@dimen/_2sdp">
 
-            <com.kdt.mcgui.LauncherMenuButton
-                android:id="@+id/custom_control_button"
-                style="@style/LauncherMenuButton.Universal"
-                android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/_5sdp"
-                android:drawableStart="@drawable/ic_menu_custom_controls"
-                android:text="@string/mcl_option_customcontrol"
-                app:layout_constraintTop_toBottomOf="@id/news_button"/>
+                <Button
+                    android:id="@+id/java_settings_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:drawableStart="@drawable/ic_hutao_java_gear"
+                    android:drawablePadding="@dimen/_8sdp"
+                    android:fontFamily="@font/noto_sans_bold"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/_10sdp"
+                    android:text="CÀI ĐẶT JAVA"
+                    android:textColor="@color/primary_text"
+                    android:textSize="@dimen/_10ssp" />
 
-            <com.kdt.mcgui.LauncherMenuButton
-                android:id="@+id/install_jar_button"
-                style="@style/LauncherMenuButton.Universal"
-                android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/_5sdp"
-                android:drawableStart="@drawable/ic_menu_install_jar"
-                android:text="@string/main_install_jar_file"
-                app:layout_constraintTop_toBottomOf="@id/custom_control_button" />
+                <Button
+                    android:id="@+id/install_jar_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:drawableStart="@drawable/ic_hutao_mods_palette"
+                    android:drawablePadding="@dimen/_8sdp"
+                    android:fontFamily="@font/noto_sans_bold"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/_10sdp"
+                    android:text="MODS &amp; SHADERS"
+                    android:textColor="@color/primary_text"
+                    android:textSize="@dimen/_10ssp" />
 
-            <com.kdt.mcgui.LauncherMenuButton
-                android:id="@+id/share_logs_button"
-                style="@style/LauncherMenuButton.Universal"
-                android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/_5sdp"
-                android:drawableStart="@android:drawable/ic_menu_share"
-                android:text="@string/main_share_logs"
-                app:layout_constraintTop_toBottomOf="@id/install_jar_button" />
+                <Button
+                    android:id="@+id/account_menu_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:drawableStart="@drawable/ic_hutao_account_person"
+                    android:drawablePadding="@dimen/_8sdp"
+                    android:fontFamily="@font/noto_sans_bold"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/_10sdp"
+                    android:text="TÀI KHOẢN"
+                    android:textColor="@color/primary_text"
+                    android:textSize="@dimen/_10ssp" />
 
-            <com.kdt.mcgui.LauncherMenuButton
-                android:id="@+id/open_files_button"
-                style="@style/LauncherMenuButton.Universal"
+                <Button
+                    android:id="@+id/open_files_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:drawableStart="@drawable/ic_hutao_library_grid"
+                    android:drawablePadding="@dimen/_8sdp"
+                    android:fontFamily="@font/noto_sans_bold"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/_10sdp"
+                    android:text="THƯ VIỆN"
+                    android:textColor="@color/primary_text"
+                    android:textSize="@dimen/_10ssp" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/_5sdp"
-                android:drawableStart="@drawable/ic_folder"
-                android:text="@string/mcl_button_open_directory"
-                app:layout_constraintTop_toBottomOf="@id/share_logs_button" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/custom_control_button"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_26sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_panel_card_bg"
+                    android:text="Phím ảo"
+                    android:textAllCaps="false"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="@dimen/_8ssp" />
+
+                <Button
+                    android:id="@+id/share_logs_button"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_26sdp"
+                    android:layout_marginStart="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_panel_card_bg"
+                    android:text="Log"
+                    android:textAllCaps="false"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="@dimen/_8ssp" />
+
+                <Button
+                    android:id="@+id/news_button"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_26sdp"
+                    android:layout_marginStart="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_panel_card_bg"
+                    android:text="Wiki"
+                    android:textAllCaps="false"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="@dimen/_8ssp" />
+
+                <Button
+                    android:id="@+id/discord_button"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_26sdp"
+                    android:layout_marginStart="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_panel_card_bg"
+                    android:text="Discord"
+                    android:textAllCaps="false"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="@dimen/_8ssp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_5sdp"
+                android:background="@drawable/hutao_panel_card_bg"
+                android:orientation="vertical"
+                android:padding="@dimen/_7sdp">
+
+                <TextView
+                    android:id="@+id/hutao_memory_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/noto_sans_bold"
+                    android:text="Memory: 4.5 GB / 8.0 GB"
+                    android:textColor="@color/primary_text"
+                    android:textSize="@dimen/_9ssp" />
+
+                <ProgressBar
+                    android:id="@+id/hutao_memory_bar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_5sdp"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:max="100"
+                    android:progress="56"
+                    android:progressDrawable="@drawable/hutao_memory_progress" />
+            </LinearLayout>
+        </LinearLayout>
     </ScrollView>
 
-    <com.kdt.mcgui.mcVersionSpinner
-        android:id="@+id/mc_version_spinner"
-        android:layout_width="0dp"
-        android:layout_height="@dimen/_34sdp"
-        android:layout_marginStart="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="@android:color/transparent"
-        android:drawableEnd="@drawable/spinner_arrow"
-        app:drawableEndPadding="@dimen/_1sdp"
-        app:drawableEndSize="@dimen/_12sdp"
-        app:drawableStartIntegerScaling="true"
-        app:drawableStartSize="@dimen/_36sdp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/edit_profile_button"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <ImageButton
-        android:id="@+id/edit_profile_button"
-        android:layout_width="@dimen/_34sdp"
-        android:layout_height="0dp"
-        android:layout_marginEnd="@dimen/_8sdp"
-        android:background="?android:attr/selectableItemBackground"
-        android:tint="@color/hutao_amber_gold"
-        android:src="@drawable/ic_edit_profile"
-        app:layout_constraintBottom_toBottomOf="@+id/mc_version_spinner"
-        app:layout_constraintEnd_toStartOf="@+id/play_button"
-        app:layout_constraintTop_toTopOf="@+id/mc_version_spinner" />
-
-    <View
-        android:id="@+id/_background_display_view"
+    <LinearLayout
+        android:id="@+id/hutao_rust_status_bar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="-8dp"
-        android:background="@color/background_bottom_bar"
-        android:translationZ="-1dp"
-        app:layout_constraintTop_toTopOf="@id/mc_version_spinner" />
-
-    <com.kdt.mcgui.MineButton
-        android:id="@+id/play_button"
-        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="@dimen/_8sdp"
-        android:paddingHorizontal="@dimen/_20sdp"
-        android:text="@string/main_play"
-        android:textColor="@color/primary_text"
-        android:textAllCaps="true"
-        app:layout_constraintBottom_toBottomOf="@+id/mc_version_spinner"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/mc_version_spinner" />
+        android:layout_marginHorizontal="@dimen/_10sdp"
+        android:layout_marginBottom="@dimen/_4sdp"
+        android:background="@drawable/hutao_panel_card_bg"
+        android:paddingHorizontal="@dimen/_8sdp"
+        android:paddingVertical="@dimen/_4sdp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:id="@+id/hutao_rust_status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:maxLines="1"
+            android:text="[Rust] Loaded jniLibs successfully. Host: Android_aarch64"
+            android:textColor="@color/secondary_text"
+            android:textSize="@dimen/_8ssp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
