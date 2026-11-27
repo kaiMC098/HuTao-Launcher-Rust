@@ -72,7 +72,7 @@ public class LauncherActivity extends BaseActivity {
         @Override
         public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
             mSettingsButton.setImageDrawable(ContextCompat.getDrawable(getBaseContext(), f instanceof MainMenuFragment
-                    ? R.drawable.ic_menu_settings : R.drawable.ic_menu_home));
+                    ? R.drawable.ic_hutao_more_vert : R.drawable.ic_menu_home));
         }
     };
 
@@ -356,5 +356,18 @@ public class LauncherActivity extends BaseActivity {
         mSettingsButton = findViewById(R.id.setting_button);
         mAccountSpinner = findViewById(R.id.account_spinner);
         mProgressLayout = findViewById(R.id.progress_layout);
+
+        android.widget.TextView verSub = findViewById(R.id.hutao_version_subtitle);
+        if (verSub != null) {
+            verSub.setText("v" + BuildConfig.VERSION_NAME);
+        }
+        View githubBtn = findViewById(R.id.github_top_button);
+        if (githubBtn != null) {
+            githubBtn.setOnClickListener(v -> Tools.openURL(this, "https://github.com/kaiMC098/HuTao-Launcher-Rust"));
+        }
+        View discordBtn = findViewById(R.id.discord_top_button);
+        if (discordBtn != null) {
+            discordBtn.setOnClickListener(v -> Tools.openURL(this, getString(R.string.discord_invite)));
+        }
     }
 }
