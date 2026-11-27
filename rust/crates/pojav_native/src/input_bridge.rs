@@ -201,7 +201,7 @@ pub extern "system" fn Java_org_lwjgl_glfw_GLFW_internalGetGamepadDataPointer(
     _class: JClass,
 ) -> jlong {
     if let Ok(st) = POJAV_ENVIRON.lock() {
-        (&st.gamepad_state as *const GLFWGamepadState) as jlong
+        (&st.gamepad_state as *const GLFWGamepadState) as usize as jlong
     } else {
         0
     }
