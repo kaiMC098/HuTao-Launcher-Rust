@@ -9,7 +9,8 @@ import tempfile
 import urllib.request
 import zipfile
 
-REPO_RELEASES_API = "https://api.github.com/repos/PojavLauncherTeam/android-openjdk-build-multiarch/releases?per_page=100"
+REPO_RELEASES_BASE = "https://api.github.com/repos/PojavLauncherTeam/android-openjdk-build-multiarch/releases"
+REPO_TAGS_BASE = "https://api.github.com/repos/PojavLauncherTeam/android-openjdk-build-multiarch/releases/tags"
 
 STAGE_ROOT = os.path.abspath("jre_stage")
 ASSETS_COMPONENTS = os.path.abspath("app_pojavlauncher/src/main/assets/components")
@@ -22,9 +23,9 @@ ABI_TO_POJAV_ARCH = {
 }
 
 JRE_SPECS = [
-    ("8", "jre"),
-    ("17", "jre-new"),
-    ("21", "jre-21"),
+    ("8", "jre", ["jre8-20210825", "jre8"]),
+    ("17", "jre-new", ["jre17", "jre17-20210825"]),
+    ("21", "jre-21", ["jre21"]),
 ]
 
 
@@ -72,23 +73,48 @@ def detect_arch_from_name(name: str):
     return None
 
 
+def fetch_all_releases():
+    all_rels = []
+    for page in range(1, 6):
+        batch = http_get_json(f"{REPO_RELEASES_BASE}?per_page=100&page={page}")
+        if not batch:
+            break
+        all_rels.extend(batch)
+        if len(batch) < 100:
+            break
+    return all_rels
+
+
 def download_all_jres():
     print("Querying PojavLauncherTeam/android-openjdk-build-multiarch releases...")
-    releases = http_get_json(REPO_RELEASES_API)
+    releases = fetch_all_releases()
+    print(f"Fetched {len(releases)} release entries from GitHub.")
 
     all_dir = os.path.join(STAGE_ROOT, "all")
     standalone_dir = os.path.join(STAGE_ROOT, "standalone")
     os.makedirs(all_dir, exist_ok=True)
     os.makedirs(standalone_dir, exist_ok=True)
 
-    for major, comp_name in JRE_SPECS:
+    for major, comp_name, fallback_tags in JRE_SPECS:
         comp_out = os.path.join(all_dir, comp_name)
         os.makedirs(comp_out, exist_ok=True)
 
-        # 1) Try finding an official Pojav binpack zip (e.g. jre17-pojav.zip)
+        seen_ids = {r.get("id") for r in releases}
+        extra_rels = []
+        for ftag in fallback_tags:
+            try:
+                rel_obj = http_get_json(f"{REPO_TAGS_BASE}/{ftag}")
+                if rel_obj.get("id") not in seen_ids:
+                    extra_rels.append(rel_obj)
+                    seen_ids.add(rel_obj.get("id"))
+            except Exception:
+                pass
+        candidate_releases = releases + extra_rels
+
+        # 1) Try finding an official Pojav binpack zip (e.g. jre8-pojav.zip, jre17-pojav.zip)
         pojav_zip_asset = None
         pojav_tag = f"jre{major}-hutao"
-        for rel in releases:
+        for rel in candidate_releases:
             if rel.get("draft"):
                 continue
             for asset in rel.get("assets", []):
@@ -118,9 +144,9 @@ def download_all_jres():
                             found_arches[arch_key] = os.path.join(comp_out, base)
             os.remove(zpath)
 
-        # 2) Also fetch standalone release tar.xz files for any missing arch & for standalone Runtime Artifact
+        # 2) Fetch standalone release tar.xz files for all 4 architectures
         standalone_found = {}
-        for rel in releases:
+        for rel in candidate_releases:
             if rel.get("draft"):
                 continue
             tag = rel.get("tag_name") or f"jre{major}"
@@ -156,11 +182,13 @@ def download_all_jres():
                 vf.write(pojav_tag)
 
         print(f"[JRE {major}] Ready arches: {sorted(found_arches.keys())}")
+        if not found_arches:
+            raise RuntimeError(f"Failed to locate any release archive for JRE {major}!")
 
 
 def stage_for_target(target: str):
     all_dir = os.path.join(STAGE_ROOT, "all")
-    for _, comp_name in JRE_SPECS:
+    for _, comp_name, _ in JRE_SPECS:
         dest_dir = os.path.join(ASSETS_COMPONENTS, comp_name)
         if os.path.exists(dest_dir):
             shutil.rmtree(dest_dir)
