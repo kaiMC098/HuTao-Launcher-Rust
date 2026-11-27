@@ -1,38 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/hutao_launcher_bg">
 
-    <com.kdt.mcgui.mcAccountSpinner
-        android:id="@+id/account_spinner"
+    <!-- Row 1: HuTao Launcher (Rust) title + version + settings/more button -->
+    <LinearLayout
+        android:id="@+id/top_title_bar"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/_52sdp"
-        android:background="@color/background_status_bar"
-        android:dropDownWidth="@dimen/_250sdp"
-        android:dropDownVerticalOffset="@dimen/_52sdp"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/_12sdp"
+        android:paddingTop="@dimen/_8sdp"
+        android:paddingBottom="@dimen/_4sdp"
+        app:layout_constraintTop_toTopOf="parent">
 
-    <ImageButton
-        android:id="@+id/setting_button"
-        android:layout_width="@dimen/_52sdp"
-        android:layout_height="@dimen/_52sdp"
-        android:background="?attr/selectableItemBackground"
-        android:src="@drawable/ic_menu_settings"
-        android:tint="@color/hutao_amber_gold"
-        android:scaleType="fitCenter"
-        android:paddingVertical="@dimen/_8sdp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/noto_sans_bold"
+                android:text="HuTao Launcher (Rust)"
+                android:textColor="@color/primary_text"
+                android:textSize="@dimen/_14ssp" />
+
+            <TextView
+                android:id="@+id/hutao_version_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="v1.2.0-beta"
+                android:textColor="@color/secondary_text"
+                android:textSize="@dimen/_9ssp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/setting_button"
+            android:layout_width="@dimen/_34sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/mcl_options"
+            android:padding="@dimen/_5sdp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_hutao_more_vert" />
+    </LinearLayout>
+
+    <!-- Row 2: GitHub + Discord circular icons on left, Account pill on right -->
+    <LinearLayout
+        android:id="@+id/top_social_account_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/_12sdp"
+        android:paddingBottom="@dimen/_6sdp"
+        app:layout_constraintTop_toBottomOf="@id/top_title_bar">
+
+        <ImageButton
+            android:id="@+id/github_top_button"
+            android:layout_width="@dimen/_32sdp"
+            android:layout_height="@dimen/_32sdp"
+            android:background="@drawable/hutao_social_circle_bg"
+            android:contentDescription="GitHub"
+            android:padding="@dimen/_6sdp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_hutao_github" />
+
+        <ImageButton
+            android:id="@+id/discord_top_button"
+            android:layout_width="@dimen/_32sdp"
+            android:layout_height="@dimen/_32sdp"
+            android:layout_marginStart="@dimen/_8sdp"
+            android:background="@drawable/hutao_social_circle_bg"
+            android:contentDescription="@string/mcl_button_discord"
+            android:padding="@dimen/_6sdp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_hutao_discord_white" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.kdt.mcgui.mcAccountSpinner
+            android:id="@+id/account_spinner"
+            android:layout_width="@dimen/_132sdp"
+            android:layout_height="@dimen/_34sdp"
+            android:background="@drawable/hutao_account_pill_bg"
+            android:dropDownWidth="@dimen/_220sdp"
+            android:dropDownVerticalOffset="@dimen/_36sdp" />
+    </LinearLayout>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container_fragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@+id/progress_layout"
-        app:layout_constraintTop_toBottomOf="@+id/account_spinner" />
+        app:layout_constraintTop_toBottomOf="@+id/top_social_account_bar" />
 
     <com.kdt.mcgui.ProgressLayout
         android:id="@+id/progress_layout"
