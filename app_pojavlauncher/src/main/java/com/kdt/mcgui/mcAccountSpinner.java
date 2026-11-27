@@ -149,7 +149,7 @@ public class mcAccountSpinner extends AppCompatSpinner implements AdapterView.On
     @SuppressLint("ClickableViewAccessibility")
     private void init(){
         // Set visual properties
-        setBackgroundColor(getResources().getColor(R.color.background_status_bar));
+        setBackgroundResource(R.drawable.hutao_account_pill_bg);
         mLoginBarPaint.setColor(getResources().getColor(R.color.minebutton_color));
         mLoginBarPaint.setStrokeWidth(getResources().getDimensionPixelOffset(R.dimen._2sdp));
 
@@ -182,10 +182,12 @@ public class mcAccountSpinner extends AppCompatSpinner implements AdapterView.On
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if(mLoginBarWidth == -1) mLoginBarWidth = getWidth(); // Initial draw
-
-        float bottom = getHeight() - mLoginBarPaint.getStrokeWidth()/2;
-        canvas.drawLine(0, bottom, mLoginBarWidth, bottom, mLoginBarPaint);
+        super.onDraw(canvas);
+        if (mLoginStep > 0 && mLoginStep < MAX_LOGIN_STEP) {
+            if(mLoginBarWidth == -1) mLoginBarWidth = getWidth();
+            float bottom = getHeight() - mLoginBarPaint.getStrokeWidth()/2;
+            canvas.drawLine(0, bottom, mLoginBarWidth, bottom, mLoginBarPaint);
+        }
     }
 
     public void removeCurrentAccount(){
