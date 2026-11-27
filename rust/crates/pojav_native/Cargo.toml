@@ -1,0 +1,17 @@
+[package]
+name = "pojavexec"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "pojavexec"
+crate-type = ["cdylib"]
+
+[dependencies]
+pojav_core = { path = "../pojav_core" }
+pojav_ui = { path = "../pojav_ui" }
+jni.workspace = true
+libc.workspace = true
+once_cell.workspace = true
+log.workspace = true
+serde_json.workspace = true
