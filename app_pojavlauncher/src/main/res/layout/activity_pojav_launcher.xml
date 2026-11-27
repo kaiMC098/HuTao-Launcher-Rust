@@ -6,96 +6,133 @@
     android:layout_height="match_parent"
     android:background="@drawable/hutao_launcher_bg">
 
-    <!-- Row 1: HuTao Launcher (Rust) title + version + settings/more button -->
+    <!-- Upgraded Wangsheng Header Card -->
     <LinearLayout
-        android:id="@+id/top_title_bar"
+        android:id="@+id/hutao_top_header_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
+        android:background="@drawable/hutao_header_bar_bg"
+        android:elevation="4dp"
+        android:orientation="vertical"
         android:paddingHorizontal="@dimen/_12sdp"
         android:paddingTop="@dimen/_8sdp"
-        android:paddingBottom="@dimen/_4sdp"
+        android:paddingBottom="@dimen/_10sdp"
         app:layout_constraintTop_toTopOf="parent">
 
+        <!-- Row 1: Avatar + Brand Title + RUST Pill + Clean Settings/Home Circle Button -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/top_title_bar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/noto_sans_bold"
-                android:text="HuTao Launcher (Rust)"
-                android:textColor="@color/primary_text"
-                android:textSize="@dimen/_14ssp" />
+            <ImageView
+                android:layout_width="@dimen/_28sdp"
+                android:layout_height="@dimen/_28sdp"
+                android:contentDescription="@string/app_short_name"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_hutao_avatar" />
 
-            <TextView
-                android:id="@+id/hutao_version_subtitle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="v1.2.0-beta"
-                android:textColor="@color/secondary_text"
-                android:textSize="@dimen/_9ssp" />
+                android:layout_marginStart="@dimen/_8sdp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/noto_sans_bold"
+                        android:text="HuTao Launcher"
+                        android:textColor="@color/primary_text"
+                        android:textSize="@dimen/_13ssp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/_6sdp"
+                        android:background="@drawable/hutao_rust_badge_bg"
+                        android:fontFamily="@font/noto_sans_bold"
+                        android:paddingHorizontal="@dimen/_5sdp"
+                        android:paddingVertical="@dimen/_1sdp"
+                        android:text="RUST"
+                        android:textColor="@color/primary_text"
+                        android:textSize="@dimen/_7ssp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/hutao_version_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="v1.2.0 • Rust Native Engine"
+                    android:textColor="@color/hutao_amber_gold"
+                    android:textSize="@dimen/_8ssp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/setting_button"
+                android:layout_width="@dimen/_34sdp"
+                android:layout_height="@dimen/_34sdp"
+                android:background="@drawable/hutao_social_circle_bg"
+                android:contentDescription="@string/mcl_options"
+                android:padding="@dimen/_7sdp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_hutao_java_gear" />
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/setting_button"
-            android:layout_width="@dimen/_34sdp"
-            android:layout_height="@dimen/_34sdp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/mcl_options"
-            android:padding="@dimen/_5sdp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_hutao_more_vert" />
-    </LinearLayout>
+        <!-- Row 2: Crisp GitHub + Discord Buttons (left) & Account Pill (right) -->
+        <LinearLayout
+            android:id="@+id/top_social_account_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_8sdp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-    <!-- Row 2: GitHub + Discord circular icons on left, Account pill on right -->
-    <LinearLayout
-        android:id="@+id/top_social_account_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/_12sdp"
-        android:paddingBottom="@dimen/_6sdp"
-        app:layout_constraintTop_toBottomOf="@id/top_title_bar">
+            <ImageButton
+                android:id="@+id/github_top_button"
+                android:layout_width="@dimen/_34sdp"
+                android:layout_height="@dimen/_34sdp"
+                android:background="@drawable/hutao_social_circle_bg"
+                android:contentDescription="GitHub"
+                android:padding="@dimen/_7sdp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_hutao_github" />
 
-        <ImageButton
-            android:id="@+id/github_top_button"
-            android:layout_width="@dimen/_32sdp"
-            android:layout_height="@dimen/_32sdp"
-            android:background="@drawable/hutao_social_circle_bg"
-            android:contentDescription="GitHub"
-            android:padding="@dimen/_6sdp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_hutao_github" />
+            <ImageButton
+                android:id="@+id/discord_top_button"
+                android:layout_width="@dimen/_34sdp"
+                android:layout_height="@dimen/_34sdp"
+                android:layout_marginStart="@dimen/_8sdp"
+                android:background="@drawable/hutao_social_circle_bg"
+                android:contentDescription="@string/mcl_button_discord"
+                android:padding="@dimen/_7sdp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_hutao_discord_white" />
 
-        <ImageButton
-            android:id="@+id/discord_top_button"
-            android:layout_width="@dimen/_32sdp"
-            android:layout_height="@dimen/_32sdp"
-            android:layout_marginStart="@dimen/_8sdp"
-            android:background="@drawable/hutao_social_circle_bg"
-            android:contentDescription="@string/mcl_button_discord"
-            android:padding="@dimen/_6sdp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_hutao_discord_white" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
-        <com.kdt.mcgui.mcAccountSpinner
-            android:id="@+id/account_spinner"
-            android:layout_width="@dimen/_132sdp"
-            android:layout_height="@dimen/_34sdp"
-            android:background="@drawable/hutao_account_pill_bg"
-            android:dropDownWidth="@dimen/_220sdp"
-            android:dropDownVerticalOffset="@dimen/_36sdp" />
+            <com.kdt.mcgui.mcAccountSpinner
+                android:id="@+id/account_spinner"
+                android:layout_width="@dimen/_142sdp"
+                android:layout_height="@dimen/_34sdp"
+                android:background="@drawable/hutao_account_pill_bg"
+                android:dropDownWidth="@dimen/_220sdp"
+                android:dropDownVerticalOffset="@dimen/_38sdp" />
+        </LinearLayout>
     </LinearLayout>
 
     <androidx.fragment.app.FragmentContainerView
@@ -103,7 +140,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@+id/progress_layout"
-        app:layout_constraintTop_toBottomOf="@+id/top_social_account_bar" />
+        app:layout_constraintTop_toBottomOf="@+id/hutao_top_header_card" />
 
     <com.kdt.mcgui.ProgressLayout
         android:id="@+id/progress_layout"
