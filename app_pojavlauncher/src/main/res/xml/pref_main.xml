@@ -51,6 +51,7 @@
             android:title="@string/preference_experimental_title"
             android:summary="@string/preference_experimental_description"
             android:fragment="net.kdt.pojavlaunch.prefs.screens.LauncherPreferenceExperimentalFragment"
+            android:icon="@drawable/ic_setting_engine"
             />
     </PreferenceCategory>
 
