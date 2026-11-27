@@ -23,8 +23,10 @@ public class LauncherPreferenceFragment extends PreferenceFragmentCompat impleme
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        view.setBackgroundColor(getResources().getColor(R.color.background_app));
+        view.setBackgroundResource(R.drawable.hutao_launcher_bg);
         super.onViewCreated(view, savedInstanceState);
+        setDivider(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        setDividerHeight(0);
     }
 
     @Override
