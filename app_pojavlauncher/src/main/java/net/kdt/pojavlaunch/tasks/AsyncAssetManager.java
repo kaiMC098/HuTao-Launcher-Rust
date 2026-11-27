@@ -79,8 +79,10 @@ public class AsyncAssetManager {
                         MultiRTUtils.installRuntimeNamedBinpack(uniStream, binStream, runtimeName, rtVersion);
                         MultiRTUtils.postPrepare(runtimeName);
                         Log.i("JREAuto", "Unpacked bundled runtime: " + runtimeName + " (" + arch + ")");
-                    } catch (IOException e) {
+                    } catch (java.io.FileNotFoundException e) {
                         Log.i("JREAuto", "Runtime " + runtimeName + " not bundled for " + arch + ": " + e.getMessage());
+                    } catch (IOException | RuntimeException e) {
+                        Log.e("JREAuto", "Failed to unpack runtime " + runtimeName + " for " + arch, e);
                     }
                 }
             } finally {
