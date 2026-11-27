@@ -303,6 +303,7 @@ public final class Tools {
         }
 
 
+        net.kdt.pojavlaunch.tasks.AsyncAssetManager.waitForRuntimeUnpack();
         Runtime runtime = MultiRTUtils.forceReread(Tools.pickRuntime(minecraftProfile, versionJavaRequirement));
         JMinecraftVersionList.Version versionInfo = Tools.getVersionInfo(versionId);
 
