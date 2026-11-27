@@ -19,10 +19,26 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class AsyncAssetManager {
 
+    private static volatile CountDownLatch sRuntimeUnpackLatch = new CountDownLatch(0);
+
     private AsyncAssetManager(){}
+
+    public static void waitForRuntimeUnpack() {
+        CountDownLatch latch = sRuntimeUnpackLatch;
+        if (latch != null && latch.getCount() > 0) {
+            try {
+                Log.i("JREAuto", "Waiting for bundled Java runtime unpack to finish...");
+                latch.await(90, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
 
     /**
      * Unpack all bundled internal Java runtimes (JRE 8, JRE 17, JRE 21) if included in the APK.
@@ -44,26 +60,33 @@ public class AsyncAssetManager {
         }
         if (!anyPending) return;
 
-        sExecutorService.execute(() -> {
-            String arch = archAsString(Tools.DEVICE_ARCHITECTURE);
-            for (String[] entry : bundledRuntimes) {
-                String assetDir = entry[0];
-                String runtimeName = entry[1];
-                try {
-                    String rtVersion = Tools.read(am.open(assetDir + "/version"));
-                    String currentVersion = MultiRTUtils.readInternalRuntimeVersion(runtimeName);
-                    if (rtVersion == null || rtVersion.equals(currentVersion)) continue;
+        final CountDownLatch latch = new CountDownLatch(1);
+        sRuntimeUnpackLatch = latch;
 
-                    InputStream uniStream = am.open(assetDir + "/universal.tar.xz");
-                    InputStream binStream = am.open(assetDir + "/bin-" + arch + ".tar.xz");
-                    MultiRTUtils.installRuntimeNamedBinpack(uniStream, binStream, runtimeName, rtVersion);
-                    MultiRTUtils.postPrepare(runtimeName);
-                    Log.i("JREAuto", "Unpacked bundled runtime: " + runtimeName + " (" + arch + ")");
-                } catch (IOException e) {
-                    Log.i("JREAuto", "Runtime " + runtimeName + " not bundled for " + arch + ": " + e.getMessage());
+        sExecutorService.execute(() -> {
+            try {
+                String arch = archAsString(Tools.DEVICE_ARCHITECTURE);
+                for (String[] entry : bundledRuntimes) {
+                    String assetDir = entry[0];
+                    String runtimeName = entry[1];
+                    try {
+                        String rtVersion = Tools.read(am.open(assetDir + "/version"));
+                        String currentVersion = MultiRTUtils.readInternalRuntimeVersion(runtimeName);
+                        if (rtVersion == null || rtVersion.equals(currentVersion)) continue;
+
+                        InputStream uniStream = am.open(assetDir + "/universal.tar.xz");
+                        InputStream binStream = am.open(assetDir + "/bin-" + arch + ".tar.xz");
+                        MultiRTUtils.installRuntimeNamedBinpack(uniStream, binStream, runtimeName, rtVersion);
+                        MultiRTUtils.postPrepare(runtimeName);
+                        Log.i("JREAuto", "Unpacked bundled runtime: " + runtimeName + " (" + arch + ")");
+                    } catch (IOException e) {
+                        Log.i("JREAuto", "Runtime " + runtimeName + " not bundled for " + arch + ": " + e.getMessage());
+                    }
                 }
+            } finally {
+                ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
+                latch.countDown();
             }
-            ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
         });
     }
 
