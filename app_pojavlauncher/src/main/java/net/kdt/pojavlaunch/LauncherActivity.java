@@ -72,7 +72,7 @@ public class LauncherActivity extends BaseActivity {
         @Override
         public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
             mSettingsButton.setImageDrawable(ContextCompat.getDrawable(getBaseContext(), f instanceof MainMenuFragment
-                    ? R.drawable.ic_hutao_more_vert : R.drawable.ic_menu_home));
+                    ? R.drawable.ic_hutao_java_gear : R.drawable.ic_menu_home));
         }
     };
 
@@ -359,7 +359,9 @@ public class LauncherActivity extends BaseActivity {
 
         android.widget.TextView verSub = findViewById(R.id.hutao_version_subtitle);
         if (verSub != null) {
-            verSub.setText("v" + BuildConfig.VERSION_NAME);
+            String rawVer = BuildConfig.VERSION_NAME != null ? BuildConfig.VERSION_NAME : "1.2.0";
+            String shortVer = rawVer.length() > 18 ? rawVer.substring(0, 18) : rawVer;
+            verSub.setText("Rust Engine • " + shortVer);
         }
         View githubBtn = findViewById(R.id.github_top_button);
         if (githubBtn != null) {
@@ -367,7 +369,7 @@ public class LauncherActivity extends BaseActivity {
         }
         View discordBtn = findViewById(R.id.discord_top_button);
         if (discordBtn != null) {
-            discordBtn.setOnClickListener(v -> Tools.openURL(this, getString(R.string.discord_invite)));
+            discordBtn.setOnClickListener(v -> Tools.openURL(this, "https://discord.gg/2dqWuKJZES"));
         }
     }
 }
