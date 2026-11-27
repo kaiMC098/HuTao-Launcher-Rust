@@ -42,6 +42,7 @@ import java.util.Locale;
 
 public class MainMenuFragment extends Fragment {
     public static final String TAG = "MainMenuFragment";
+    private static final String HUTAO_DISCORD_URL = "https://discord.gg/2dqWuKJZES";
 
     private mcVersionSpinner mVersionSpinner;
     private Button mPlayButton;
@@ -52,7 +53,6 @@ public class MainMenuFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        Button mNewsButton = view.findViewById(R.id.news_button);
         Button mDiscordButton = view.findViewById(R.id.discord_button);
         Button mCustomControlButton = view.findViewById(R.id.custom_control_button);
         Button mInstallJarButton = view.findViewById(R.id.install_jar_button);
@@ -65,15 +65,26 @@ public class MainMenuFragment extends Fragment {
         mPlayButton = view.findViewById(R.id.play_button);
         mVersionSpinner = view.findViewById(R.id.mc_version_spinner);
 
-        mNewsButton.setOnClickListener(v -> Tools.openURL(requireActivity(), Tools.URL_HOME));
-        mDiscordButton.setOnClickListener(v -> Tools.openURL(requireActivity(), getString(R.string.discord_invite)));
-        mCustomControlButton.setOnClickListener(v -> startActivity(new Intent(requireContext(), CustomControlsActivity.class)));
-        mInstallJarButton.setOnClickListener(v -> runInstallerWithConfirmation(false));
-        mInstallJarButton.setOnLongClickListener(v -> {
-            runInstallerWithConfirmation(true);
-            return true;
-        });
-        mEditProfileButton.setOnClickListener(v -> mVersionSpinner.openProfileEditor(requireActivity()));
+        if (mDiscordButton != null) {
+            mDiscordButton.setOnClickListener(v -> Tools.openURL(requireActivity(), HUTAO_DISCORD_URL));
+        }
+        if (mCustomControlButton != null) {
+            mCustomControlButton.setOnClickListener(v -> startActivity(new Intent(requireContext(), CustomControlsActivity.class)));
+            mCustomControlButton.setOnLongClickListener(v -> {
+                Tools.swapFragment(requireActivity(), GamepadMapperFragment.class, GamepadMapperFragment.TAG, null);
+                return true;
+            });
+        }
+        if (mInstallJarButton != null) {
+            mInstallJarButton.setOnClickListener(v -> runInstallerWithConfirmation(false));
+            mInstallJarButton.setOnLongClickListener(v -> {
+                runInstallerWithConfirmation(true);
+                return true;
+            });
+        }
+        if (mEditProfileButton != null) {
+            mEditProfileButton.setOnClickListener(v -> mVersionSpinner.openProfileEditor(requireActivity()));
+        }
 
         if (mJavaSettingsButton != null) {
             mJavaSettingsButton.setOnClickListener(v -> Tools.swapFragment(
@@ -90,22 +101,21 @@ public class MainMenuFragment extends Fragment {
 
         mPlayButton.setOnClickListener(v -> ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true));
 
-        mShareLogsButton.setOnClickListener(v -> shareLog(requireContext()));
+        if (mShareLogsButton != null) {
+            mShareLogsButton.setOnClickListener(v -> shareLog(requireContext()));
+        }
 
-        mOpenDirectoryButton.setOnClickListener(v -> {
-            Tools.switchDemo(Tools.isDemoProfile(v.getContext()));
-            if(Tools.isDemoProfile(v.getContext())){
-                Toast.makeText(v.getContext(), R.string.toast_not_available_demo, Toast.LENGTH_LONG).show();
-                return;
-            }
+        if (mOpenDirectoryButton != null) {
+            mOpenDirectoryButton.setOnClickListener(v -> {
+                Tools.switchDemo(Tools.isDemoProfile(v.getContext()));
+                if(Tools.isDemoProfile(v.getContext())){
+                    Toast.makeText(v.getContext(), R.string.toast_not_available_demo, Toast.LENGTH_LONG).show();
+                    return;
+                }
 
-            openPath(v.getContext(), getCurrentProfileDirectory(), false);
-        });
-
-        mNewsButton.setOnLongClickListener(v -> {
-            Tools.swapFragment(requireActivity(), GamepadMapperFragment.class, GamepadMapperFragment.TAG, null);
-            return true;
-        });
+                openPath(v.getContext(), getCurrentProfileDirectory(), false);
+            });
+        }
 
         updatePlayButtonLabel();
         updateRamAndRustStatus(view);
@@ -128,7 +138,7 @@ public class MainMenuFragment extends Fragment {
         } catch (Throwable ignored) {}
 
         String title = "CHƠI (PLAY)";
-                SpannableStringBuilder ssb = new SpannableStringBuilder(title + "\n" + subtitle);
+        SpannableStringBuilder ssb = new SpannableStringBuilder(title + "\n" + subtitle);
         ssb.setSpan(new RelativeSizeSpan(1.08f), 0, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ssb.setSpan(new RelativeSizeSpan(0.72f), title.length() + 1, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ssb.setSpan(new ForegroundColorSpan(0xFFFFE5DC), title.length() + 1, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
