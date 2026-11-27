@@ -85,7 +85,7 @@ pub extern "system" fn Java_com_oracle_dalvik_VMLauncher_launchJVM(
                 if let Ok(cs) = CString::new(rust_str.to_str().unwrap_or_default()) {
                     c_args.push(cs);
                 }
-            }
+            };
         }
     }
     unsafe { launch_jvm_native(c_args) }
