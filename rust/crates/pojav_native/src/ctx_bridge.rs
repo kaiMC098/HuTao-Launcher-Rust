@@ -354,7 +354,7 @@ pub extern "system" fn Java_net_kdt_pojavlaunch_utils_JREUtils_setupBridgeWindow
             RENDERER_GL4ES
         };
 
-        if let Ok(st) = BRIDGE.lock() {
+        if let Ok(mut st) = BRIDGE.lock() {
             if renderer == RENDERER_VK_ZINK {
                 if !st.main_osm.is_null() {
                     (*st.main_osm).state = STATE_RENDERER_NEW_WINDOW;
@@ -444,7 +444,7 @@ pub extern "system" fn Java_org_lwjgl_vulkan_VK_getVulkanDriverHandle(
     _env: JNIEnv,
     _class: JClass,
 ) -> jlong {
-    maybe_load_vulkan() as jlong
+    maybe_load_vulkan() as usize as jlong
 }
 
 #[no_mangle]
