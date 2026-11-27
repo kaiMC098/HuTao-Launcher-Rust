@@ -18,6 +18,7 @@ import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -28,6 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 public class MultiRTUtils {
 
@@ -72,12 +74,19 @@ public class MultiRTUtils {
     public static void installRuntimeNamed(String nativeLibDir, InputStream runtimeInputStream, String name) throws IOException {
         File dest = new File(RUNTIME_FOLDER,"/"+name);
         if(dest.exists()) FileUtils.deleteDirectory(dest);
-        uncompressTarXZ(runtimeInputStream,dest);
-        runtimeInputStream.close();
-        flattenSingleRootDirIfNeeded(dest);
-        unpack200(nativeLibDir,RUNTIME_FOLDER + "/" + name);
-        ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
-        forceReread(name);
+        try {
+            uncompressTarXZ(runtimeInputStream,dest);
+            runtimeInputStream.close();
+            flattenSingleRootDirIfNeeded(dest);
+            unpack200(nativeLibDir,RUNTIME_FOLDER + "/" + name);
+            forceReread(name);
+            if(read(name).versionString == null) throw new IOException("Runtime " + name + " is invalid after unpacking (missing 'release' or libjvm.so)");
+        } catch (IOException | RuntimeException e) {
+            cleanupFailedInstall(dest, name);
+            throw e;
+        } finally {
+            ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
+        }
     }
 
     public static void postPrepare(String name) throws IOException {
@@ -99,20 +108,42 @@ public class MultiRTUtils {
     public static void installRuntimeNamedBinpack(InputStream universalFileInputStream, InputStream platformBinsInputStream, String name, String binpackVersion) throws IOException {
         File dest = new File(RUNTIME_FOLDER,"/"+name);
         if(dest.exists()) FileUtils.deleteDirectory(dest);
-        installRuntimeNamedNoRemove(universalFileInputStream,dest);
-        installRuntimeNamedNoRemove(platformBinsInputStream,dest);
-        flattenSingleRootDirIfNeeded(dest);
+        try {
+            installRuntimeNamedNoRemove(universalFileInputStream,dest);
+            installRuntimeNamedNoRemove(platformBinsInputStream,dest);
+            flattenSingleRootDirIfNeeded(dest);
 
-        unpack200(NATIVE_LIB_DIR,RUNTIME_FOLDER + "/" + name);
+            unpack200(NATIVE_LIB_DIR,RUNTIME_FOLDER + "/" + name);
 
-        File binpack_verfile = new File(RUNTIME_FOLDER,"/"+name+"/pojav_version");
-        FileOutputStream fos = new FileOutputStream(binpack_verfile);
-        fos.write(binpackVersion.getBytes());
-        fos.close();
+            // Kiểm tra runtime hợp lệ TRƯỚC khi ghi pojav_version,
+            // để runtime hỏng không bị đánh dấu là "đã cài xong".
+            forceReread(name);
+            if(read(name).versionString == null) {
+                throw new IOException("Runtime " + name + " is invalid after unpacking (missing 'release' or libjvm.so)");
+            }
 
-        ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
+            File binpack_verfile = new File(RUNTIME_FOLDER,"/"+name+"/pojav_version");
+            try (FileOutputStream fos = new FileOutputStream(binpack_verfile)) {
+                fos.write(binpackVersion.getBytes());
+            }
+            forceReread(name);
+        } catch (IOException | RuntimeException e) {
+            cleanupFailedInstall(dest, name);
+            throw e;
+        } finally {
+            ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
+        }
+    }
 
-        forceReread(name);
+    /** Xóa thư mục runtime cài dở để không còn runtime "hỏng" nằm trong danh sách. */
+    private static void cleanupFailedInstall(File dest, String name) {
+        Log.e("MultiRT", "Install of runtime " + name + " failed, removing partial files");
+        sCache.remove(name);
+        try {
+            if(dest.exists()) FileUtils.deleteDirectory(dest);
+        } catch (IOException ioe) {
+            Log.e("MultiRT", "Could not remove partial runtime " + name, ioe);
+        }
     }
 
     private static void flattenSingleRootDirIfNeeded(File dest) throws IOException {
@@ -260,9 +291,7 @@ public class MultiRTUtils {
 
         byte[] buffer = new byte[8192];
         List<Map.Entry<File, String>> pendingSymlinks = new ArrayList<>();
-        TarArchiveInputStream tarIn = new TarArchiveInputStream(
-                new XZCompressorInputStream(tarFileInputStream)
-        );
+        TarArchiveInputStream tarIn = new TarArchiveInputStream(openCompressed(tarFileInputStream));
         TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
         while (tarEntry != null) {
 
@@ -306,5 +335,31 @@ public class MultiRTUtils {
                 }
             }
         }
+    }
+
+    /**
+     * Tự nhận dạng định dạng nén bằng magic bytes (không tin vào đuôi tên file).
+     * File bin-*.tar.xz trong APK đôi khi thực chất là .tar.gz -> XZ sẽ ném
+     * "Input is not in the XZ format" và runtime bị bỏ dở (hiện "Java đã gặp xung đột").
+     */
+    private static InputStream openCompressed(InputStream raw) throws IOException {
+        BufferedInputStream in = new BufferedInputStream(raw, 64 * 1024);
+        in.mark(8);
+        byte[] magic = new byte[6];
+        int read = 0;
+        while (read < magic.length) {
+            int r = in.read(magic, read, magic.length - read);
+            if (r < 0) break;
+            read += r;
+        }
+        in.reset();
+        if (read >= 6 && (magic[0] & 0xFF) == 0xFD && magic[1] == '7' && magic[2] == 'z'
+                && magic[3] == 'X' && magic[4] == 'Z' && magic[5] == 0x00) {
+            return new XZCompressorInputStream(in);
+        }
+        if (read >= 2 && (magic[0] & 0xFF) == 0x1F && (magic[1] & 0xFF) == 0x8B) {
+            return new GZIPInputStream(in, 64 * 1024);
+        }
+        throw new IOException("Unsupported runtime archive format (neither XZ nor GZIP)");
     }
 }
