@@ -68,6 +68,22 @@ def make_stub_universal_tar_xz(dest: str, label: str):
             tar.add(marker, arcname=".hutao_jre_marker")
 
 
+def ensure_xz(path: str):
+    """Đảm bảo file thực sự là .xz (đổi từ gzip sang xz nếu cần) vì app giải nén theo bin-*.tar.xz."""
+    with open(path, "rb") as f:
+        head = f.read(6)
+    if head == b"\xfd7zXZ\x00":
+        return
+    if head[:2] == b"\x1f\x8b":
+        tmp = path + ".tmp"
+        with tarfile.open(path, "r:gz") as src, tarfile.open(tmp, "w:xz") as dst:
+            for m in src:
+                dst.addfile(m, src.extractfile(m) if m.isfile() else None)
+        os.replace(tmp, path)
+        return
+    raise RuntimeError(f"{path} is neither XZ nor GZIP")
+
+
 def detect_arch_from_name(name: str):
     low = name.lower()
     if "arm64" in low or "aarch64" in low:
@@ -209,6 +225,7 @@ def download_all_jres():
                 download_file(url, standalone_dest)
                 if arch not in found_arches:
                     shutil.copy2(standalone_dest, os.path.join(comp_out, f"bin-{arch}.tar.xz"))
+                    ensure_xz(os.path.join(comp_out, f"bin-{arch}.tar.xz"))
                     found_arches[arch] = os.path.join(comp_out, f"bin-{arch}.tar.xz")
                     pojav_tag = tag
             except Exception as e:
@@ -220,7 +237,9 @@ def download_all_jres():
         for arch in ["arm64", "arm", "x86_64", "x86"]:
             if arch not in found_arches:
                 standalone_dest = os.path.join(standalone_dir, f"jre{major}-{arch}.tar.xz")
-                ftag = try_adoptium_fallback(major, arch, standalone_dest)
+                # Temurin/Adoptium là bản glibc cho Linux desktop -> KHÔNG chạy được trên Android (bionic),
+                # nên không dùng làm fallback nữa. Thiếu arch nào thì bỏ qua arch đó.
+                ftag = None
                 if ftag:
                     shutil.copy2(standalone_dest, os.path.join(comp_out, f"bin-{arch}.tar.xz"))
                     found_arches[arch] = os.path.join(comp_out, f"bin-{arch}.tar.xz")
