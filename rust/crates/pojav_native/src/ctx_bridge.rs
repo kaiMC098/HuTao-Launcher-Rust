@@ -201,9 +201,19 @@ unsafe fn resolve_egl_proc(
 
 unsafe fn dlsym_egl() -> Option<EglApi> {
     let mut handle = std::ptr::null_mut();
-    if let Some(custom_egl) = getenv_str("POJAVEXEC_EGL") {
-        if let Ok(c_custom) = CString::new(custom_egl) {
-            handle = libc::dlopen(c_custom.as_ptr(), libc::RTLD_LOCAL | libc::RTLD_LAZY);
+    let native_dir = getenv_str("POJAV_NATIVEDIR");
+    let custom_egl = getenv_str("POJAVEXEC_EGL").or_else(|| getenv_str("LIBGL_EGL"));
+    if let Some(egl_lib) = custom_egl {
+        if let Some(ref nd) = native_dir {
+            let abs_path = format!("{}/{}", nd, egl_lib);
+            if let Ok(c_abs) = CString::new(abs_path) {
+                handle = libc::dlopen(c_abs.as_ptr(), libc::RTLD_GLOBAL | libc::RTLD_LAZY);
+            }
+        }
+        if handle.is_null() {
+            if let Ok(c_custom) = CString::new(egl_lib) {
+                handle = libc::dlopen(c_custom.as_ptr(), libc::RTLD_GLOBAL | libc::RTLD_LAZY);
+            }
         }
     }
     if handle.is_null() {
@@ -512,6 +522,12 @@ pub extern "C" fn pojavInitOpenGL() -> c_int {
                 }
             }
         } else {
+            if renderer_str.contains("zink") || renderer_str.contains("kopper") {
+                maybe_load_vulkan();
+                if let (Ok(k), Ok(v)) = (CString::new("GALLIUM_DRIVER"), CString::new("zink")) {
+                    libc::setenv(k.as_ptr(), v.as_ptr(), 1);
+                }
+            }
             if st.egl.is_none() {
                 st.egl = dlsym_egl();
             }
