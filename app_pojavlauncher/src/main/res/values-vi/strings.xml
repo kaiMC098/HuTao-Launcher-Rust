@@ -50,6 +50,9 @@
     <string name="mcl_setting_title_javaargs">Các chỉ số chạy JVM</string>
     <string name="mcl_setting_subtitle_javaargs">Cẩn thận, việc này sẽ làm trò chơi gặp sự cố nếu sửa đổi mà không có nhiều kiến thức.</string>
     <string name="mcl_setting_category_renderer">Trình kết xuất</string>
+    <string name="mcl_setting_renderer_mobileglues">MobileGlues (OpenGL 4.0 - Hỗ trợ Shader &amp; Sodium)</string>
+    <string name="mcl_setting_renderer_ng_gl4es">Krypton Wrapper (NG-GL4ES - Siêu mượt cho Mali)</string>
+    <string name="mcl_setting_renderer_kopper_zink">Kopper Zink (Vulkan - DesktopGL thế hệ mới)</string>
     <string name="mcl_setting_renderer_gles2_4">Holy GL4ES - (tất cả phiên bản, nhanh)</string>
     <string name="mcl_setting_renderer_vulkan_zink">Zink (Vulkan) - (tất cả phiên bản, Hiệu suất cho: trung bình)</string>
     <string name="mcl_setting_renderer_ltw">LTW (OpenGL ES 3) - 1.17 trở lên</string>
