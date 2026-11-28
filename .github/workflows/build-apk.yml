@@ -7,36 +7,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  build-native:
+    name: Compile Rust Native Engine
     runs-on: ubuntu-24.04
-    env:
-      CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 8 (for LWJGL3 stub toolchain)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '8'
-
-      - name: Set up JDK 21 (for Gradle & Android build)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Set up Android SDK & NDK
+      - name: Set up Android NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-34 build-tools;34.0.0 ndk;25.2.9519653'
+          packages: 'ndk;25.2.9519653'
 
       - name: Set up Rust toolchain (4 Android ABIs)
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: hutao-rust-${{ runner.os }}-${{ hashFiles('rust/Cargo.lock', 'rust/Cargo.toml') }}
+          restore-keys: hutao-rust-${{ runner.os }}-
 
       - name: Install cargo-ndk
         uses: taiki-e/install-action@v2
@@ -49,6 +45,7 @@ jobs:
       - name: Compile Rust libraries to jniLibs (.so)
         run: |
           export ANDROID_NDK_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/ndk/25.2.9519653"
+          mkdir -p rust_out
           cd rust
           cargo ndk \
             -P 21 \
@@ -56,84 +53,119 @@ jobs:
             -t armeabi-v7a \
             -t x86 \
             -t x86_64 \
-            -o ../app_pojavlauncher/src/main/jniLibs \
+            -o ../rust_out \
             build --release
           for abi in arm64-v8a armeabi-v7a x86 x86_64; do
-            cp "../app_pojavlauncher/src/main/jniLibs/${abi}/libpojavexec_awt.so" \
-               "../app_pojavlauncher/src/main/jniLibs/${abi}/libawt_xawt.so"
-            cp "../app_pojavlauncher/src/main/jniLibs/${abi}/liblinkerhook.so" \
-               "../app_pojavlauncher/src/main/jniLibs/${abi}/libexithook.so"
+            cp "../rust_out/${abi}/libpojavexec_awt.so" "../rust_out/${abi}/libawt_xawt.so"
+            cp "../rust_out/${abi}/liblinkerhook.so" "../rust_out/${abi}/libexithook.so"
           done
+
+      - name: Upload Rust jniLibs
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-jnilibs
+          path: rust_out
+          retention-days: 1
+
+  build-apk:
+    name: Build APK (${{ matrix.arch }})
+    needs: build-native
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            abi: arm64-v8a
+            label: arm64-v8a
+          - arch: arm
+            abi: armeabi-v7a
+            label: armeabi-v7a
+          - arch: x86_64
+            abi: x86_64
+            label: x86_64
+          - arch: x86
+            abi: x86
+            label: x86
+          - arch: all
+            abi: ""
+            label: all
+    env:
+      CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download compiled Rust jniLibs
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-jnilibs
+          path: app_pojavlauncher/src/main/jniLibs
+
+      - name: Set up JDK 8 (for LWJGL3 stub toolchain)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Set up JDK 21 (for Gradle & Android build)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0'
 
       - name: Download LTW Renderer AAR
         run: |
           mkdir -p app_pojavlauncher/libs
           wget -q https://github.com/PojavLauncherTeam/LTW/releases/latest/download/ltw-release.aar -O app_pojavlauncher/libs/ltw-release.aar
 
-      - name: Download Java Runtimes (JRE 8, 17, 21 - Multiarch)
-        run: python3 scripts/download_jres.py --download
+      - name: Fetch ZalithLauncher 2 Java Runtimes (8/17/21/25) & Renderers
+        run: |
+          EXTRA_ARGS=""
+          if [ "${{ matrix.arch }}" = "all" ]; then
+            EXTRA_ARGS="--standalone"
+          fi
+          python3 scripts/fetch_zalith_assets.py --arch "${{ matrix.arch }}" ${EXTRA_ARGS}
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build JRE Helper JARs, Per-ABI APKs & Universal All-in-One APK
+      - name: Build HuTao-Launcher-${{ matrix.label }}.apk
         run: |
           sed -i 's/\r$//' gradlew scripts/languagelist_updater.sh
           chmod +x gradlew scripts/languagelist_updater.sh
           ./scripts/languagelist_updater.sh
           ./gradlew :jre_lwjgl3glfw:jar :arc_dns_injector:jar :forge_installer:jar --no-daemon
 
+          if [ -n "${{ matrix.abi }}" ]; then
+            ./gradlew :app_pojavlauncher:assembleDebug -PtargetAbi="${{ matrix.abi }}" --no-daemon
+          else
+            ./gradlew :app_pojavlauncher:assembleDebug --no-daemon
+          fi
+
           mkdir -p out
-          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
-            echo "=== Building HuTao-Launcher-${abi}.apk (with JRE 8, 17, 21 for ${abi}) ==="
-            python3 scripts/download_jres.py --stage "${abi}"
-            ./gradlew :app_pojavlauncher:assembleDebug -PtargetAbi="${abi}" --no-daemon
-            cp app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk "out/HuTao-Launcher-${abi}.apk"
-          done
-
-          echo "=== Building HuTao-Launcher-all.apk (Universal All-in-One with ALL Java Runtimes) ==="
-          python3 scripts/download_jres.py --stage all
-          ./gradlew :app_pojavlauncher:assembleDebug --no-daemon
-          cp app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk out/HuTao-Launcher-all.apk
-
-          (cd out && sha256sum *.apk > SHA256SUMS.txt)
+          cp app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk "out/HuTao-Launcher-${{ matrix.label }}.apk"
+          (cd out && sha256sum "HuTao-Launcher-${{ matrix.label }}.apk" > "HuTao-Launcher-${{ matrix.label }}.sha256")
           ls -lh out/
 
-      - name: Upload APK (arm64-v8a - Most Android Phones)
+      - name: Upload APK (${{ matrix.label }})
         uses: actions/upload-artifact@v4
         with:
-          name: HuTao-Launcher-arm64-v8a
-          path: out/HuTao-Launcher-arm64-v8a.apk
-
-      - name: Upload APK (armeabi-v7a - 32-bit Android)
-        uses: actions/upload-artifact@v4
-        with:
-          name: HuTao-Launcher-armeabi-v7a
-          path: out/HuTao-Launcher-armeabi-v7a.apk
-
-      - name: Upload APK (x86_64 - Emulator / Chromebook)
-        uses: actions/upload-artifact@v4
-        with:
-          name: HuTao-Launcher-x86_64
-          path: out/HuTao-Launcher-x86_64.apk
-
-      - name: Upload APK (x86 - 32-bit Emulator)
-        uses: actions/upload-artifact@v4
-        with:
-          name: HuTao-Launcher-x86
-          path: out/HuTao-Launcher-x86.apk
-
-      - name: Upload APK (All-in-One Universal + All Java Runtimes)
-        uses: actions/upload-artifact@v4
-        with:
-          name: HuTao-Launcher-all
+          name: HuTao-Launcher-${{ matrix.label }}
           path: |
-            out/HuTao-Launcher-all.apk
-            out/SHA256SUMS.txt
+            out/HuTao-Launcher-${{ matrix.label }}.apk
+            out/HuTao-Launcher-${{ matrix.label }}.sha256
 
-      - name: Upload Standalone Java Runtimes (.tar.xz)
+      - name: Upload Standalone Java Runtimes (.tar.xz - JRE 8/17/21/25)
+        if: matrix.arch == 'all'
         uses: actions/upload-artifact@v4
         with:
-          name: HuTao-Java-Runtimes
-          path: jre_stage/standalone/*.tar.xz
+          name: HuTao-Java-Runtimes-arm64
+          path: out/standalone_jres/*.tar.xz
           if-no-files-found: ignore
