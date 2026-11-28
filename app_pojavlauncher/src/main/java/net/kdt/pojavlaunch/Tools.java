@@ -1371,14 +1371,19 @@ public final class Tools {
         // Currently, only 32-bit x86 does not have the Zink binary
         boolean deviceHasZinkBinary = !(Architecture.is32BitsDevice() && Architecture.isx86Device());
         boolean deviceHasOpenGLES3 = JREUtils.getDetectedVersion() >= 3;
-        // LTW is an optional proprietary dependency
         boolean appHasLtw = new File(Tools.NATIVE_LIB_DIR, "libltw.so").exists();
+        boolean appHasMobileGlues = new File(Tools.NATIVE_LIB_DIR, "libmobileglues.so").exists();
+        boolean appHasNgGl4es = new File(Tools.NATIVE_LIB_DIR, "libng_gl4es.so").exists();
+        boolean appHasKopper = new File(Tools.NATIVE_LIB_DIR, "libglxshim.so").exists();
         List<String> rendererIds = new ArrayList<>(defaultRenderers.length);
         List<String> rendererNames = new ArrayList<>(defaultRendererNames.length);
         for(int i = 0; i < defaultRenderers.length; i++) {
             String rendererId = defaultRenderers[i];
+            if(rendererId.contains("mobileglues") && (!deviceHasOpenGLES3 || !appHasMobileGlues)) continue;
+            if(rendererId.contains("ng_gl4es") && (!deviceHasOpenGLES3 || !appHasNgGl4es)) continue;
+            if(rendererId.contains("kopper") && (!deviceHasVulkan || !deviceHasOpenGLES3 || !appHasKopper)) continue;
             if(rendererId.contains("vulkan") && !deviceHasVulkan) continue;
-            if(rendererId.contains("zink") && !deviceHasZinkBinary) continue;
+            if(rendererId.equals("vulkan_zink") && !deviceHasZinkBinary) continue;
             if(rendererId.contains("ltw") && (!deviceHasOpenGLES3 || !appHasLtw)) continue;
             rendererIds.add(rendererId);
             rendererNames.add(defaultRendererNames[i]);
