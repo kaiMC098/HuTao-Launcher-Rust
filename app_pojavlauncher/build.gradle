@@ -184,6 +184,7 @@ android {
             useLegacyPackaging = true
         }
         pickFirst '**/libbytehook.so'
+        pickFirst '**/libopenal.so'
     }
 
     buildFeatures {
