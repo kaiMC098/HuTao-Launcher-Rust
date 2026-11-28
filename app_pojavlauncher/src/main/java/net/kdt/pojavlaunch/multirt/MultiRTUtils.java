@@ -58,6 +58,16 @@ public class MultiRTUtils {
         return runtimes;
     }
 
+    public static int getValidRuntimeCount() {
+        int count = 0;
+        try {
+            for (Runtime r : getRuntimes()) {
+                if (r.versionString != null && r.javaVersion > 0) count++;
+            }
+        } catch (Throwable ignored) {}
+        return count;
+    }
+
     public static String getExactJreName(int majorVersion) {
         List<Runtime> runtimes = getRuntimes();
         for (Runtime r : runtimes) {
@@ -78,12 +88,21 @@ public class MultiRTUtils {
     public static void installRuntimeNamed(String nativeLibDir, InputStream runtimeInputStream, String name) throws IOException {
         File dest = new File(RUNTIME_FOLDER, "/" + name);
         if (dest.exists()) FileUtils.deleteDirectory(dest);
-        uncompressTarXZ(runtimeInputStream, dest);
-        runtimeInputStream.close();
-        flattenSingleRootDirIfNeeded(dest);
-        unpack200(nativeLibDir, RUNTIME_FOLDER + "/" + name);
-        ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
-        forceReread(name);
+        try {
+            uncompressTarXZ(runtimeInputStream, dest);
+            runtimeInputStream.close();
+            flattenSingleRootDirIfNeeded(dest);
+            unpack200(nativeLibDir, RUNTIME_FOLDER + "/" + name);
+            forceReread(name);
+        } catch (IOException e) {
+            if (dest.exists()) {
+                try { FileUtils.deleteDirectory(dest); } catch (Throwable ignored) {}
+            }
+            sCache.remove(name);
+            throw e;
+        } finally {
+            ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
+        }
     }
 
     public static void postPrepare(String name) throws IOException {
@@ -93,11 +112,18 @@ public class MultiRTUtils {
         String libFolder = "lib";
         if (runtime.arch != null && new File(dest, libFolder + "/" + runtime.arch).exists()) {
             libFolder = libFolder + "/" + runtime.arch;
+        } else if (new File(dest, "jre/lib").exists()) {
+            libFolder = "jre/lib";
+            if (runtime.arch != null && new File(dest, libFolder + "/" + runtime.arch).exists()) {
+                libFolder = libFolder + "/" + runtime.arch;
+            }
         }
         File ftIn = new File(dest, libFolder + "/libfreetype.so.6");
         File ftOut = new File(dest, libFolder + "/libfreetype.so");
         if (ftIn.exists() && (!ftOut.exists() || ftIn.length() != ftOut.length())) {
-            if (!ftIn.renameTo(ftOut)) throw new IOException("Failed to rename freetype");
+            if (!ftIn.renameTo(ftOut)) {
+                try { FileUtils.copyFile(ftIn, ftOut); } catch (Throwable ignored) {}
+            }
         }
 
         copyDummyNativeLib("libawt_xawt.so", dest, libFolder);
@@ -106,20 +132,31 @@ public class MultiRTUtils {
     public static void installRuntimeNamedBinpack(InputStream universalFileInputStream, InputStream platformBinsInputStream, String name, String binpackVersion) throws IOException {
         File dest = new File(RUNTIME_FOLDER, "/" + name);
         if (dest.exists()) FileUtils.deleteDirectory(dest);
-        installRuntimeNamedNoRemove(universalFileInputStream, dest);
-        installRuntimeNamedNoRemove(platformBinsInputStream, dest);
-        flattenSingleRootDirIfNeeded(dest);
+        try {
+            installRuntimeNamedNoRemove(universalFileInputStream, dest);
+            installRuntimeNamedNoRemove(platformBinsInputStream, dest);
+            flattenSingleRootDirIfNeeded(dest);
 
-        unpack200(NATIVE_LIB_DIR, RUNTIME_FOLDER + "/" + name);
+            unpack200(NATIVE_LIB_DIR, RUNTIME_FOLDER + "/" + name);
 
-        File binpackVerFile = new File(RUNTIME_FOLDER, "/" + name + "/pojav_version");
-        FileOutputStream fos = new FileOutputStream(binpackVerFile);
-        fos.write(binpackVersion.getBytes());
-        fos.close();
+            File binpackVerFile = new File(RUNTIME_FOLDER, "/" + name + "/pojav_version");
+            FileOutputStream fos = new FileOutputStream(binpackVerFile);
+            fos.write(binpackVersion.trim().getBytes());
+            fos.close();
 
-        ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
-
-        forceReread(name);
+            forceReread(name);
+            if (!hasValidRuntimeBinaries(dest)) {
+                throw new IOException("Unpacked runtime " + name + " missing libjvm.so or libjli.so");
+            }
+        } catch (IOException e) {
+            if (dest.exists()) {
+                try { FileUtils.deleteDirectory(dest); } catch (Throwable ignored) {}
+            }
+            sCache.remove(name);
+            throw e;
+        } finally {
+            ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
+        }
     }
 
     private static void flattenSingleRootDirIfNeeded(File dest) throws IOException {
@@ -145,23 +182,29 @@ public class MultiRTUtils {
         FileUtils.deleteDirectory(candidateDir);
     }
 
-    private static boolean hasValidJvmBinary(File runtimeDir) {
+    public static boolean hasValidRuntimeBinaries(File runtimeDir) {
         if (!runtimeDir.isDirectory()) return false;
-        Collection<File> soFiles = listFiles(runtimeDir, new String[]{"so"}, true);
-        for (File f : soFiles) {
-            if ("libjvm.so".equals(f.getName()) && f.length() > 1024) {
-                return true;
+        if (!new File(runtimeDir, "release").isFile()) return false;
+        boolean hasJvm = false;
+        boolean hasJli = false;
+        try {
+            Collection<File> soFiles = listFiles(runtimeDir, new String[]{"so"}, true);
+            for (File f : soFiles) {
+                String n = f.getName();
+                if ("libjvm.so".equals(n) && f.length() > 1024) hasJvm = true;
+                if ("libjli.so".equals(n) && f.length() > 1024) hasJli = true;
+                if (hasJvm && hasJli) return true;
             }
-        }
-        return false;
+        } catch (Throwable ignored) {}
+        return hasJvm && hasJli;
     }
 
     public static String readInternalRuntimeVersion(String name) {
         File runtimeDir = new File(RUNTIME_FOLDER, name);
         File versionFile = new File(runtimeDir, "pojav_version");
         try {
-            if (versionFile.exists() && hasValidJvmBinary(runtimeDir)) {
-                return Tools.read(versionFile.getAbsolutePath());
+            if (versionFile.exists() && hasValidRuntimeBinaries(runtimeDir)) {
+                return Tools.read(versionFile.getAbsolutePath()).trim();
             } else {
                 return null;
             }
@@ -181,7 +224,7 @@ public class MultiRTUtils {
 
     public static File getRuntimeHome(String name) {
         File dest = new File(RUNTIME_FOLDER, name);
-        Log.i("MiltiRTUitls", "Dest exists? " + dest.exists());
+        Log.i("MultiRTUtils", "Dest exists? " + dest.exists());
         if ((!dest.exists()) || MultiRTUtils.forceReread(name).versionString == null) {
             throw new RuntimeException("Selected runtime is broken!");
         }
@@ -193,12 +236,16 @@ public class MultiRTUtils {
         return read(name);
     }
 
+    public static void clearCache() {
+        sCache.clear();
+    }
+
     public static Runtime read(String name) {
         Runtime returnRuntime = sCache.get(name);
         if (returnRuntime != null) return returnRuntime;
         File runtimeDir = new File(RUNTIME_FOLDER, name);
         File release = new File(runtimeDir, "release");
-        if (!release.exists() || !hasValidJvmBinary(runtimeDir)) {
+        if (!release.exists() || !hasValidRuntimeBinaries(runtimeDir)) {
             return new Runtime(name);
         }
         try {
@@ -227,16 +274,16 @@ public class MultiRTUtils {
     private static void unpack200(String nativeLibraryDir, String runtimePath) {
         File basePath = new File(runtimePath);
         Collection<File> files = listFiles(basePath, new String[]{"pack"}, true);
+        if (files.isEmpty()) return;
 
         File workdir = new File(nativeLibraryDir);
-
         ProcessBuilder processBuilder = new ProcessBuilder().directory(workdir);
         for (File jarFile : files) {
             try {
                 Process process = processBuilder.command("./libunpack200.so", "-r", jarFile.getAbsolutePath(), jarFile.getAbsolutePath().replace(".pack", "")).start();
                 process.waitFor();
             } catch (InterruptedException | IOException e) {
-                Log.e("MULTIRT", "Failed to unpack the runtime !");
+                Log.e("MULTIRT", "Failed to unpack200: " + jarFile.getName(), e);
             }
         }
     }
@@ -248,6 +295,7 @@ public class MultiRTUtils {
         File fileLib = new File(targetDir, name);
         File srcLib = new File(NATIVE_LIB_DIR, name);
         if (!srcLib.exists()) return;
+        if (fileLib.exists()) fileLib.delete();
         FileInputStream is = new FileInputStream(srcLib);
         FileOutputStream os = new FileOutputStream(fileLib);
         IOUtils.copy(is, os);
