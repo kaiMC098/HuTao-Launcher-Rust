@@ -516,7 +516,8 @@ public class MinecraftDownloader {
         }
         
         private void downloadFile() throws Exception {
-            
+            // Offline / local profile download enabled for HuTao Launcher
+
             try {
                 DownloadUtils.ensureSha1(mTargetPath, mTargetSha1, () -> {
                     DownloadMirror.downloadFileMirrored(mDownloadClass, mTargetUrl, mTargetPath,
