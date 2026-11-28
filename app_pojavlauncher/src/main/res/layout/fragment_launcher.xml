@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Hero Art Card (Hu Tao + Boo Tao in Minecraft) + overlapping CHƠI (PLAY) button -->
+            <!-- Hero Art Card (Hu Tao + Boo Tao) + Live Renderer/JRE Chips + CHƠI (PLAY) -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
@@ -30,11 +30,43 @@
                 <ImageView
                     android:id="@+id/hutao_hero_image"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/_185sdp"
+                    android:layout_height="@dimen/_175sdp"
                     android:contentDescription="@string/app_short_name"
                     android:scaleType="centerCrop"
                     android:src="@drawable/hutao_hero_card_art"
                     app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/hutao_renderer_chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/_8sdp"
+                    android:layout_marginTop="@dimen/_8sdp"
+                    android:background="@drawable/hutao_status_chip_bg"
+                    android:fontFamily="@font/noto_sans_bold"
+                    android:paddingHorizontal="@dimen/_8sdp"
+                    android:paddingVertical="@dimen/_3sdp"
+                    android:text="Renderer: GL4ES"
+                    android:textColor="@color/hutao_amber_gold"
+                    android:textSize="@dimen/_8ssp"
+                    app:layout_constraintStart_toStartOf="@id/hutao_hero_image"
+                    app:layout_constraintTop_toTopOf="@id/hutao_hero_image" />
+
+                <TextView
+                    android:id="@+id/hutao_jre_chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_8sdp"
+                    android:layout_marginEnd="@dimen/_8sdp"
+                    android:background="@drawable/hutao_status_chip_bg"
+                    android:fontFamily="@font/noto_sans_bold"
+                    android:paddingHorizontal="@dimen/_8sdp"
+                    android:paddingVertical="@dimen/_3sdp"
+                    android:text="JRE: 8/17/21/25"
+                    android:textColor="@color/primary_text"
+                    android:textSize="@dimen/_8ssp"
+                    app:layout_constraintEnd_toEndOf="@id/hutao_hero_image"
+                    app:layout_constraintTop_toTopOf="@id/hutao_hero_image" />
 
                 <TextView
                     android:id="@+id/hutao_welcome_text"
@@ -48,7 +80,7 @@
                     android:shadowRadius="6"
                     android:text="Welcome back, Traveler!"
                     android:textColor="@color/primary_text"
-                    android:textSize="@dimen/_15ssp"
+                    android:textSize="@dimen/_14ssp"
                     app:layout_constraintBottom_toBottomOf="@id/hutao_hero_image"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />
@@ -60,7 +92,7 @@
                     android:layout_marginTop="-20dp"
                     android:gravity="center"
                     android:lineSpacingExtra="2dp"
-                    android:minHeight="@dimen/_48sdp"
+                    android:minHeight="@dimen/_46sdp"
                     android:paddingHorizontal="@dimen/_14sdp"
                     android:paddingVertical="@dimen/_6sdp"
                     android:text="CHƠI (PLAY)"
@@ -103,73 +135,86 @@
                     android:tint="@color/hutao_amber_gold" />
             </LinearLayout>
 
-            <!-- 4-Row Feature Menu Card (exact match to 25598.png) -->
+            <!-- Zalith-inspired 2x2 Action Card Grid (HuTao Styled) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/_8sdp"
-                android:background="@drawable/hutao_panel_card_bg"
-                android:orientation="vertical"
-                android:paddingVertical="@dimen/_4sdp">
+                android:orientation="horizontal">
 
                 <Button
                     android:id="@+id/java_settings_button"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/_36sdp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_44sdp"
+                    android:layout_marginEnd="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_grid_card_bg"
                     android:drawableStart="@drawable/ic_hutao_java_gear"
-                    android:drawablePadding="@dimen/_10sdp"
+                    android:drawablePadding="@dimen/_8sdp"
                     android:fontFamily="@font/noto_sans_bold"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/_12sdp"
+                    android:paddingHorizontal="@dimen/_10sdp"
                     android:text="CÀI ĐẶT JAVA"
                     android:textColor="@color/primary_text"
-                    android:textSize="@dimen/_11ssp" />
+                    android:textSize="@dimen/_10ssp" />
 
                 <Button
                     android:id="@+id/install_jar_button"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/_36sdp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_44sdp"
+                    android:layout_marginStart="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_grid_card_bg"
                     android:drawableStart="@drawable/ic_hutao_mods_palette"
-                    android:drawablePadding="@dimen/_10sdp"
+                    android:drawablePadding="@dimen/_8sdp"
                     android:fontFamily="@font/noto_sans_bold"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/_12sdp"
-                    android:text="MODS &amp; SHADERS"
+                    android:paddingHorizontal="@dimen/_10sdp"
+                    android:text="MODS &amp; JAR"
                     android:textColor="@color/primary_text"
-                    android:textSize="@dimen/_11ssp" />
+                    android:textSize="@dimen/_10ssp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_6sdp"
+                android:orientation="horizontal">
 
                 <Button
                     android:id="@+id/account_menu_button"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/_36sdp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_44sdp"
+                    android:layout_marginEnd="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_grid_card_bg"
                     android:drawableStart="@drawable/ic_hutao_account_person"
-                    android:drawablePadding="@dimen/_10sdp"
+                    android:drawablePadding="@dimen/_8sdp"
                     android:fontFamily="@font/noto_sans_bold"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/_12sdp"
+                    android:paddingHorizontal="@dimen/_10sdp"
                     android:text="TÀI KHOẢN"
                     android:textColor="@color/primary_text"
-                    android:textSize="@dimen/_11ssp" />
+                    android:textSize="@dimen/_10ssp" />
 
                 <Button
                     android:id="@+id/open_files_button"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/_36sdp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_44sdp"
+                    android:layout_marginStart="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_grid_card_bg"
                     android:drawableStart="@drawable/ic_hutao_library_grid"
-                    android:drawablePadding="@dimen/_10sdp"
+                    android:drawablePadding="@dimen/_8sdp"
                     android:fontFamily="@font/noto_sans_bold"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/_12sdp"
+                    android:paddingHorizontal="@dimen/_10sdp"
                     android:text="THƯ VIỆN"
                     android:textColor="@color/primary_text"
-                    android:textSize="@dimen/_11ssp" />
+                    android:textSize="@dimen/_10ssp" />
             </LinearLayout>
 
-            <!-- Compact Utility Strip (Controls, Share Logs, Wiki, Discord) -->
+            <!-- Quick Utility Strip (Phím ảo, Đồ họa/Renderer, Log, Discord) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -179,7 +224,7 @@
                 <Button
                     android:id="@+id/custom_control_button"
                     android:layout_width="0dp"
-                    android:layout_height="@dimen/_30sdp"
+                    android:layout_height="@dimen/_32sdp"
                     android:layout_weight="1"
                     android:background="@drawable/hutao_panel_card_bg"
                     android:text="Phím ảo"
@@ -188,9 +233,21 @@
                     android:textSize="@dimen/_9ssp" />
 
                 <Button
+                    android:id="@+id/video_settings_button"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_32sdp"
+                    android:layout_marginStart="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:background="@drawable/hutao_panel_card_bg"
+                    android:text="Đồ họa"
+                    android:textAllCaps="false"
+                    android:textColor="@color/hutao_amber_gold"
+                    android:textSize="@dimen/_9ssp" />
+
+                <Button
                     android:id="@+id/share_logs_button"
                     android:layout_width="0dp"
-                    android:layout_height="@dimen/_30sdp"
+                    android:layout_height="@dimen/_32sdp"
                     android:layout_marginStart="@dimen/_4sdp"
                     android:layout_weight="1"
                     android:background="@drawable/hutao_panel_card_bg"
@@ -202,7 +259,7 @@
                 <Button
                     android:id="@+id/discord_button"
                     android:layout_width="0dp"
-                    android:layout_height="@dimen/_30sdp"
+                    android:layout_height="@dimen/_32sdp"
                     android:layout_marginStart="@dimen/_4sdp"
                     android:layout_weight="1"
                     android:background="@drawable/hutao_panel_card_bg"
@@ -212,7 +269,7 @@
                     android:textSize="@dimen/_9ssp" />
             </LinearLayout>
 
-            <!-- Live Memory Usage Card -->
+            <!-- Live Memory + SoC/GPU Optimizer + Quick Clean Cache Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -221,14 +278,37 @@
                 android:orientation="vertical"
                 android:padding="@dimen/_10sdp">
 
-                <TextView
-                    android:id="@+id/hutao_memory_text"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/noto_sans_bold"
-                    android:text="Memory: 4.5 GB / 8.0 GB"
-                    android:textColor="@color/primary_text"
-                    android:textSize="@dimen/_10ssp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/hutao_memory_text"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/noto_sans_bold"
+                        android:text="Memory: -- / -- GB"
+                        android:textColor="@color/primary_text"
+                        android:textSize="@dimen/_10ssp" />
+
+                    <Button
+                        android:id="@+id/hutao_clean_cache_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="@dimen/_24sdp"
+                        android:background="@drawable/hutao_select_button_bg"
+                        android:fontFamily="@font/noto_sans_bold"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="@dimen/_8sdp"
+                        android:paddingVertical="0dp"
+                        android:text="Dọn Cache"
+                        android:textAllCaps="false"
+                        android:textColor="@color/primary_text"
+                        android:textSize="@dimen/_8ssp" />
+                </LinearLayout>
 
                 <ProgressBar
                     android:id="@+id/hutao_memory_bar"
@@ -237,8 +317,19 @@
                     android:layout_height="@dimen/_6sdp"
                     android:layout_marginTop="@dimen/_6sdp"
                     android:max="100"
-                    android:progress="56"
+                    android:progress="55"
                     android:progressDrawable="@drawable/hutao_memory_progress" />
+
+                <TextView
+                    android:id="@+id/hutao_soc_info_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/_5sdp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="SoC Optimizer: Ready"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="@dimen/_8ssp" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
