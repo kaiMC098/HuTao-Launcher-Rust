@@ -141,35 +141,15 @@ public class JREUtils {
     }
 
     public static void relocateLibPath(Runtime runtime, String jreHome) {
-        Tools.DIRNAME_HOME_JRE = "lib";
-        String JRE_ARCHITECTURE = runtime.arch != null ? runtime.arch : "";
+        String JRE_ARCHITECTURE = runtime.arch;
         if (Architecture.archAsInt(JRE_ARCHITECTURE) == ARCH_X86){
             JRE_ARCHITECTURE = "i386/i486/i586";
         }
 
-        boolean foundArchDir = false;
         for (String arch : JRE_ARCHITECTURE.split("/")) {
-            if (arch.isEmpty()) continue;
             File f = new File(jreHome, "lib/" + arch);
             if (f.exists() && f.isDirectory()) {
                 Tools.DIRNAME_HOME_JRE = "lib/" + arch;
-                foundArchDir = true;
-                break;
-            }
-            File fj = new File(jreHome, "jre/lib/" + arch);
-            if (fj.exists() && fj.isDirectory()) {
-                Tools.DIRNAME_HOME_JRE = "jre/lib/" + arch;
-                foundArchDir = true;
-                break;
-            }
-        }
-        if (!foundArchDir) {
-            for (String fallback : new String[]{"lib/aarch64", "lib/arm", "lib/amd64", "lib/i386", "jre/lib/aarch64", "jre/lib"}) {
-                File f = new File(jreHome, fallback);
-                if (f.exists() && f.isDirectory() && (new File(f, "jli").isDirectory() || new File(f, "server").isDirectory() || new File(f, "client").isDirectory())) {
-                    Tools.DIRNAME_HOME_JRE = fallback;
-                    break;
-                }
             }
         }
 
@@ -281,13 +261,9 @@ public class JREUtils {
 
         File serverFile = new File(jreHome + "/" + Tools.DIRNAME_HOME_JRE + "/server/libjvm.so");
         jvmLibraryPath = jreHome + "/" + Tools.DIRNAME_HOME_JRE + "/" + (serverFile.exists() ? "server" : "client");
-        String fullLdPath = jvmLibraryPath + ":" + LD_LIBRARY_PATH;
-        try {
-            Os.setenv("LD_LIBRARY_PATH", fullLdPath, true);
-        } catch (ErrnoException ignored) {}
         Log.d("DynamicLoader","Base LD_LIBRARY_PATH: "+LD_LIBRARY_PATH);
-        Log.d("DynamicLoader","Internal LD_LIBRARY_PATH: "+fullLdPath);
-        setLdLibraryPath(fullLdPath);
+        Log.d("DynamicLoader","Internal LD_LIBRARY_PATH: "+jvmLibraryPath+":"+LD_LIBRARY_PATH);
+        setLdLibraryPath(jvmLibraryPath+":"+LD_LIBRARY_PATH);
 
         // return ldLibraryPath;
     }
