@@ -165,6 +165,7 @@ public class AsyncAssetManager {
                 unpackComponent(ctx, "caciocavallo", false);
                 unpackComponent(ctx, "caciocavallo17", false);
                 unpackComponent(ctx, "lwjgl3", false);
+                try { unpackComponent(ctx, "lwjgl3_z2", false); } catch (IOException ignored) {}
                 unpackComponent(ctx, "security", true);
                 unpackComponent(ctx, "arc_dns_injector", true);
                 unpackComponent(ctx, "forge_installer", true);
