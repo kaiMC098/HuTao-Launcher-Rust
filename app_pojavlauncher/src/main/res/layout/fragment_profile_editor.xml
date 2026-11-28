@@ -326,6 +326,42 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 
+    <!-- Quick Profile Tools: Tách thư mục & Nhân bản -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/background_bottom_bar"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/_14sdp"
+        android:paddingTop="@dimen/_8sdp">
+
+        <Button
+            android:id="@+id/vprof_editor_isolate_button"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_34sdp"
+            android:layout_marginEnd="@dimen/_6sdp"
+            android:layout_weight="1"
+            android:background="@drawable/hutao_grid_card_bg"
+            android:fontFamily="@font/noto_sans_bold"
+            android:text="Tách thư mục"
+            android:textAllCaps="false"
+            android:textColor="@color/hutao_amber_gold"
+            android:textSize="@dimen/_10ssp" />
+
+        <Button
+            android:id="@+id/vprof_editor_clone_button"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_34sdp"
+            android:layout_marginStart="@dimen/_6sdp"
+            android:layout_weight="1"
+            android:background="@drawable/hutao_grid_card_bg"
+            android:fontFamily="@font/noto_sans_bold"
+            android:text="Nhân bản Profile"
+            android:textAllCaps="false"
+            android:textColor="@color/primary_text"
+            android:textSize="@dimen/_10ssp" />
+    </LinearLayout>
+
     <!-- Bottom Action Bar: LƯU & XÓA -->
     <LinearLayout
         android:layout_width="match_parent"
