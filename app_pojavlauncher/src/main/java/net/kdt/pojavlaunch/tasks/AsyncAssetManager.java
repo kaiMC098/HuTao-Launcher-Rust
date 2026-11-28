@@ -40,10 +40,6 @@ public class AsyncAssetManager {
         }
     }
 
-    /**
-     * Unpack all bundled internal Java runtimes (JRE 8, JRE 17, JRE 21) if included in the APK.
-     * @param am App AssetManager
-     */
     public static void unpackRuntime(AssetManager am) {
         final String[][] bundledRuntimes = new String[][]{
                 {"components/jre", "Internal"},
@@ -79,10 +75,8 @@ public class AsyncAssetManager {
                         MultiRTUtils.installRuntimeNamedBinpack(uniStream, binStream, runtimeName, rtVersion);
                         MultiRTUtils.postPrepare(runtimeName);
                         Log.i("JREAuto", "Unpacked bundled runtime: " + runtimeName + " (" + arch + ")");
-                    } catch (java.io.FileNotFoundException e) {
+                    } catch (IOException e) {
                         Log.i("JREAuto", "Runtime " + runtimeName + " not bundled for " + arch + ": " + e.getMessage());
-                    } catch (IOException | RuntimeException e) {
-                        Log.e("JREAuto", "Failed to unpack runtime " + runtimeName + " for " + arch, e);
                     }
                 }
             } finally {
@@ -102,7 +96,6 @@ public class AsyncAssetManager {
         }
     }
 
-    /** Unpack single files, with no regard to version tracking */
     public static void unpackSingleFiles(Context ctx){
         ProgressLayout.setProgress(ProgressLayout.EXTRACT_SINGLE_FILES, 0);
         sExecutorService.execute(() -> {
