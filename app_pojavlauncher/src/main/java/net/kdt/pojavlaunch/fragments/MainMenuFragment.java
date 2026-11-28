@@ -193,7 +193,7 @@ public class MainMenuFragment extends Fragment {
     }
 
     private void runInstallerWithConfirmation(boolean isCustomArgs) {
-        if(Tools.isDemoProfile(requireContext())){
+        if(Tools.isLocalProfile(requireContext()) || Tools.isDemoProfile(requireContext())){
             Toast.makeText(requireContext(), R.string.toast_not_available_demo, Toast.LENGTH_LONG).show();
             return;
         }
