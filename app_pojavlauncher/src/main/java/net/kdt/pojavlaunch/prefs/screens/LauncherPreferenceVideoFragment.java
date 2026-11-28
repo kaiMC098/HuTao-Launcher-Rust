@@ -12,6 +12,7 @@ import net.kdt.pojavlaunch.R;
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.prefs.CustomSeekBarPreference;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
+import net.kdt.pojavlaunch.prefs.MobileGluesSettingsDialog;
 
 /**
  * Fragment for any settings video related
@@ -50,6 +51,11 @@ public class LauncherPreferenceVideoFragment extends LauncherPreferenceFragment 
         Tools.RenderersList renderersList = Tools.getCompatibleRenderers(getContext());
         rendererListPreference.setEntries(renderersList.rendererDisplayNames);
         rendererListPreference.setEntryValues(renderersList.rendererIds.toArray(new String[0]));
+
+        requirePreference("mobileglues_settings").setOnPreferenceClickListener(p -> {
+            MobileGluesSettingsDialog.show(getContext());
+            return true;
+        });
 
         computeVisibility();
     }

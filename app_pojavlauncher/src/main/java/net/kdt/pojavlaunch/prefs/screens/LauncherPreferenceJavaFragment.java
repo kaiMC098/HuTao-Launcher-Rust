@@ -5,6 +5,7 @@ import static net.kdt.pojavlaunch.Tools.getTotalDeviceMemory;
 
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.preference.EditTextPreference;
@@ -49,6 +50,18 @@ public class LauncherPreferenceJavaFragment extends LauncherPreferenceFragment {
 
         requirePreference("install_jre").setOnPreferenceClickListener(preference->{
             openMultiRTDialog();
+            return true;
+        });
+
+        requirePreference("smart_ram_suggest").setOnPreferenceClickListener(preference -> {
+            int bestRam = LauncherPreferences.findBestRAMAllocation(requireContext());
+            bestRam = Math.min(bestRam, maxRAM);
+            memorySeekbar.setValue(bestRam);
+            LauncherPreferences.PREF_RAM_ALLOCATION = bestRam;
+            if (LauncherPreferences.DEFAULT_PREF != null) {
+                LauncherPreferences.DEFAULT_PREF.edit().putInt("allocation", bestRam).apply();
+            }
+            Toast.makeText(requireContext(), "Đã đặt RAM tối ưu: " + bestRam + " MB", Toast.LENGTH_SHORT).show();
             return true;
         });
     }
