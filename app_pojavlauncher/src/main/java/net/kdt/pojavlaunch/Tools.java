@@ -338,8 +338,10 @@ public final class Tools {
         }
 
         javaArgList.addAll(Arrays.asList(getMinecraftJVMArgs(versionId, gamedir)));
+        boolean isLwjgl2Version = (versionInfo.arguments == null);
+        String lwjglClassPath = getLWJGL3ClassPath(isLwjgl2Version);
         javaArgList.add("-cp");
-        javaArgList.add(launchClassPath + ":" + getLWJGL3ClassPath());
+        javaArgList.add((lwjglClassPath.isEmpty() ? "" : lwjglClassPath + ":") + launchClassPath);
 
         javaArgList.add(versionInfo.mainClass);
         javaArgList.addAll(Arrays.asList(launchArgs));
@@ -404,7 +406,12 @@ public final class Tools {
         } else {
             javaArgList.add("-Dawt.toolkit=com.github.caciocavallosilano.cacio.ctc.CTCToolkit");
             javaArgList.add("-Djava.awt.graphicsenv=com.github.caciocavallosilano.cacio.ctc.CTCGraphicsEnvironment");
-            javaArgList.add("-Djava.system.class.loader=com.github.caciocavallosilano.cacio.ctc.CTCPreloadClassLoader");
+            File cacioAgent = new File(DIR_GAME_HOME + "/caciocavallo17/cacio-agent.jar");
+            if (cacioAgent.isFile()) {
+                javaArgList.add("-javaagent:" + cacioAgent.getAbsolutePath());
+            } else {
+                javaArgList.add("-Djava.system.class.loader=com.github.caciocavallosilano.cacio.ctc.CTCPreloadClassLoader");
+            }
 
             javaArgList.add("--add-exports=java.desktop/java.awt=ALL-UNNAMED");
             javaArgList.add("--add-exports=java.desktop/java.awt.peer=ALL-UNNAMED");
@@ -457,8 +464,16 @@ public final class Tools {
         if (versionInfo.arguments != null) {
             for (Object arg : versionInfo.arguments.jvm) {
                 if (arg instanceof String) {
-                    minecraftArgs.add((String) arg);
-                } //TODO: implement (?maybe?)
+                    String sArg = (String) arg;
+                    if (sArg.startsWith("-Djava.library.path=")) {
+                        sArg = "-Djava.library.path=${natives_directory}";
+                    } else if (sArg.contains("-Dio.netty.native.workdir")
+                            || sArg.contains("-Djna.tmpdir")
+                            || sArg.contains("-Dorg.lwjgl.system.SharedLibraryExtractPath")) {
+                        sArg = sArg.replace("${natives_directory}", Tools.DIR_CACHE.getAbsolutePath());
+                    }
+                    minecraftArgs.add(sArg);
+                }
             }
         }
         return JSONUtils.insertJSONValueList(minecraftArgs.toArray(new String[0]), varArgMap);
@@ -553,20 +568,41 @@ public final class Tools {
         return DIR_HOME_VERSION + "/" + version + "/" + version + ".jar";
     }
 
-    private static String getLWJGL3ClassPath() {
-        StringBuilder libStr = new StringBuilder();
-        File lwjgl3Folder = new File(Tools.DIR_GAME_HOME, "lwjgl3");
-        File[] lwjgl3Files = lwjgl3Folder.listFiles();
-        if (lwjgl3Files != null) {
-            for (File file: lwjgl3Files) {
-                if (file.getName().endsWith(".jar")) {
-                    libStr.append(file.getAbsolutePath()).append(":");
-                }
-            }
+    private static String getLWJGL3ClassPath(boolean isLwjgl2) {
+        File z2Folder = new File(Tools.DIR_GAME_HOME, "lwjgl3_z2");
+        File[] z2Files = z2Folder.isDirectory() ? z2Folder.listFiles() : null;
+        File lwjglFolder = (z2Files != null && z2Files.length > 0)
+                ? z2Folder
+                : new File(Tools.DIR_GAME_HOME, "lwjgl3");
+        File[] files = lwjglFolder.listFiles();
+        if (files == null || files.length == 0) return "";
+
+        List<File> jars = new ArrayList<>();
+        for (File f : files) {
+            String n = f.getName();
+            if (!n.endsWith(".jar")) continue;
+            if (!isLwjgl2 && "lwjgl-lwjglx.jar".equals(n)) continue;
+            jars.add(f);
         }
-        // Remove the ':' at the end
-        libStr.setLength(libStr.length() - 1);
+        java.util.Collections.sort(jars, (a, b) -> {
+            int oa = lwjglJarPriority(a.getName());
+            int ob = lwjglJarPriority(b.getName());
+            return oa != ob ? Integer.compare(oa, ob) : a.getName().compareTo(b.getName());
+        });
+
+        StringBuilder libStr = new StringBuilder();
+        for (File file : jars) {
+            if (libStr.length() > 0) libStr.append(":");
+            libStr.append(file.getAbsolutePath());
+        }
         return libStr.toString();
+    }
+
+    private static int lwjglJarPriority(String name) {
+        if ("lwjgl.jar".equals(name)) return 0;
+        if (name.contains("merged-modules")) return 1;
+        if ("lwjgl-glfw-classes.jar".equals(name)) return 2;
+        return 10;
     }
 
     private final static boolean isClientFirst = false;
@@ -872,7 +908,14 @@ public final class Tools {
     public static String[] generateLibClasspath(JMinecraftVersionList.Version info) {
         List<String> libDir = new ArrayList<>();
         for (DependentLibrary libItem: info.libraries) {
-            if(!checkRules(libItem.rules)) continue;
+            if (!checkRules(libItem.rules)) continue;
+            if (libItem.name != null && (
+                    libItem.name.contains("org.lwjgl")
+                    || libItem.name.contains("jinput-platform")
+                    || libItem.name.contains("twitch-platform")
+            )) {
+                continue;
+            }
             libDir.add(Tools.DIR_HOME_LIBRARY + "/" + artifactToPath(libItem));
         }
         return libDir.toArray(new String[0]);
