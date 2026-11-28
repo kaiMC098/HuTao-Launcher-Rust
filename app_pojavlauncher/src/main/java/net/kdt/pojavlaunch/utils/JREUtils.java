@@ -141,15 +141,35 @@ public class JREUtils {
     }
 
     public static void relocateLibPath(Runtime runtime, String jreHome) {
-        String JRE_ARCHITECTURE = runtime.arch;
+        Tools.DIRNAME_HOME_JRE = "lib";
+        String JRE_ARCHITECTURE = runtime.arch != null ? runtime.arch : "";
         if (Architecture.archAsInt(JRE_ARCHITECTURE) == ARCH_X86){
             JRE_ARCHITECTURE = "i386/i486/i586";
         }
 
+        boolean foundArchDir = false;
         for (String arch : JRE_ARCHITECTURE.split("/")) {
+            if (arch.isEmpty()) continue;
             File f = new File(jreHome, "lib/" + arch);
             if (f.exists() && f.isDirectory()) {
                 Tools.DIRNAME_HOME_JRE = "lib/" + arch;
+                foundArchDir = true;
+                break;
+            }
+            File fj = new File(jreHome, "jre/lib/" + arch);
+            if (fj.exists() && fj.isDirectory()) {
+                Tools.DIRNAME_HOME_JRE = "jre/lib/" + arch;
+                foundArchDir = true;
+                break;
+            }
+        }
+        if (!foundArchDir) {
+            for (String fallback : new String[]{"lib/aarch64", "lib/arm", "lib/amd64", "lib/i386", "jre/lib/aarch64", "jre/lib"}) {
+                File f = new File(jreHome, fallback);
+                if (f.exists() && f.isDirectory() && (new File(f, "jli").isDirectory() || new File(f, "server").isDirectory() || new File(f, "client").isDirectory())) {
+                    Tools.DIRNAME_HOME_JRE = fallback;
+                    break;
+                }
             }
         }
 
@@ -216,7 +236,32 @@ public class JREUtils {
             envMap.put("POJAV_RENDERER", LOCAL_RENDERER);
             if(LOCAL_RENDERER.equals("opengles3_ltw")) {
                 envMap.put("LIBGL_ES", "3");
-                envMap.put("POJAVEXEC_EGL","libltw.so"); // Use ANGLE EGL
+                envMap.put("POJAVEXEC_EGL", "libltw.so");
+            } else if(LOCAL_RENDERER.equals("opengles3_mobileglues")) {
+                File mgDir = new File(Tools.DIR_DATA, "mobileglues");
+                if (!mgDir.exists()) mgDir.mkdirs();
+                File mgCfg = new File(mgDir, "config.json");
+                if (!mgCfg.exists()) {
+                    try (FileOutputStream fos = new FileOutputStream(mgCfg)) {
+                        String defaultCfg = "{\"enableANGLE\":0,\"enableNoError\":1,\"enableExtGL43\":1,\"enableExtComputeShader\":1,\"maxGlslCacheSize\":64,\"multidrawMode\":0,\"fsr1Setting\":0}";
+                        fos.write(defaultCfg.getBytes());
+                    } catch (IOException ignored) {}
+                }
+                envMap.put("MG_DIR_PATH", mgDir.getAbsolutePath());
+                envMap.put("LIBGL_ES", "3");
+                envMap.put("POJAVEXEC_EGL", "libmobileglues.so");
+                envMap.put("LIBGL_EGL", "libmobileglues.so");
+            } else if(LOCAL_RENDERER.equals("opengles3_ng_gl4es")) {
+                envMap.put("LIBGL_USE_MC_COLOR", "1");
+                envMap.put("LIBGL_GL", "31");
+                envMap.put("LIBGL_ES", "3");
+                envMap.put("LIBGL_NORMALIZE", "1");
+                envMap.put("LIBGL_NOERROR", "1");
+            } else if(LOCAL_RENDERER.equals("opengles3_desktopgl_zink_kopper")) {
+                envMap.put("LIBGL_ES", "3");
+                envMap.put("POJAVEXEC_EGL", "libEGL_mesa.so");
+                envMap.put("MESA_LOADER_DRIVER_OVERRIDE", "zink");
+                envMap.put("GALLIUM_DRIVER", "zink");
             }
         }
         if(LauncherPreferences.PREF_BIG_CORE_AFFINITY) envMap.put("POJAV_BIG_CORE_AFFINITY", "1");
@@ -261,9 +306,13 @@ public class JREUtils {
 
         File serverFile = new File(jreHome + "/" + Tools.DIRNAME_HOME_JRE + "/server/libjvm.so");
         jvmLibraryPath = jreHome + "/" + Tools.DIRNAME_HOME_JRE + "/" + (serverFile.exists() ? "server" : "client");
+        String fullLdPath = jvmLibraryPath + ":" + LD_LIBRARY_PATH;
+        try {
+            Os.setenv("LD_LIBRARY_PATH", fullLdPath, true);
+        } catch (ErrnoException ignored) {}
         Log.d("DynamicLoader","Base LD_LIBRARY_PATH: "+LD_LIBRARY_PATH);
-        Log.d("DynamicLoader","Internal LD_LIBRARY_PATH: "+jvmLibraryPath+":"+LD_LIBRARY_PATH);
-        setLdLibraryPath(jvmLibraryPath+":"+LD_LIBRARY_PATH);
+        Log.d("DynamicLoader","Internal LD_LIBRARY_PATH: "+fullLdPath);
+        setLdLibraryPath(fullLdPath);
 
         // return ldLibraryPath;
     }
@@ -468,12 +517,15 @@ public class JREUtils {
         if(LOCAL_RENDERER == null) return null;
         String renderLibrary;
         switch (LOCAL_RENDERER){
+            case "opengles3_mobileglues": renderLibrary = "libmobileglues.so"; break;
+            case "opengles3_ng_gl4es": renderLibrary = "libng_gl4es.so"; break;
+            case "opengles3_desktopgl_zink_kopper": renderLibrary = "libglxshim.so"; break;
             case "opengles2":
             case "opengles2_5":
             case "opengles3":
                 renderLibrary = "libgl4es_114.so"; break;
             case "vulkan_zink": renderLibrary = "libOSMesa.so"; break;
-            case "opengles3_ltw" : renderLibrary = "libltw.so"; break;
+            case "opengles3_ltw": renderLibrary = "libltw.so"; break;
             default:
                 Log.w("RENDER_LIBRARY", "No renderer selected, defaulting to opengles2");
                 renderLibrary = "libgl4es_114.so";
