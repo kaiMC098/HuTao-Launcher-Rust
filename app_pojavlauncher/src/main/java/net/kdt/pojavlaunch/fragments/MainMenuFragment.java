@@ -26,14 +26,18 @@ import androidx.fragment.app.Fragment;
 import com.kdt.mcgui.mcVersionSpinner;
 
 import net.kdt.pojavlaunch.CustomControlsActivity;
+import net.kdt.pojavlaunch.PojavApplication;
 import net.kdt.pojavlaunch.R;
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.extra.ExtraConstants;
 import net.kdt.pojavlaunch.extra.ExtraCore;
+import net.kdt.pojavlaunch.multirt.MultiRTUtils;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
 import net.kdt.pojavlaunch.prefs.screens.LauncherPreferenceJavaFragment;
+import net.kdt.pojavlaunch.prefs.screens.LauncherPreferenceVideoFragment;
 import net.kdt.pojavlaunch.progresskeeper.ProgressKeeper;
 import net.kdt.pojavlaunch.rust.RustCoreBridge;
+import net.kdt.pojavlaunch.utils.GLInfoUtils;
 import net.kdt.pojavlaunch.value.launcherprofiles.LauncherProfiles;
 import net.kdt.pojavlaunch.value.launcherprofiles.MinecraftProfile;
 
@@ -47,7 +51,7 @@ public class MainMenuFragment extends Fragment {
     private mcVersionSpinner mVersionSpinner;
     private Button mPlayButton;
 
-    public MainMenuFragment(){
+    public MainMenuFragment() {
         super(R.layout.fragment_launcher);
     }
 
@@ -55,11 +59,13 @@ public class MainMenuFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         Button mDiscordButton = view.findViewById(R.id.discord_button);
         Button mCustomControlButton = view.findViewById(R.id.custom_control_button);
+        Button mVideoSettingsButton = view.findViewById(R.id.video_settings_button);
         Button mInstallJarButton = view.findViewById(R.id.install_jar_button);
         Button mShareLogsButton = view.findViewById(R.id.share_logs_button);
         Button mOpenDirectoryButton = view.findViewById(R.id.open_files_button);
         Button mJavaSettingsButton = view.findViewById(R.id.java_settings_button);
         Button mAccountMenuButton = view.findViewById(R.id.account_menu_button);
+        Button mCleanCacheButton = view.findViewById(R.id.hutao_clean_cache_button);
 
         ImageButton mEditProfileButton = view.findViewById(R.id.edit_profile_button);
         mPlayButton = view.findViewById(R.id.play_button);
@@ -75,6 +81,14 @@ public class MainMenuFragment extends Fragment {
                 return true;
             });
         }
+        if (mVideoSettingsButton != null) {
+            mVideoSettingsButton.setOnClickListener(v -> Tools.swapFragment(
+                    requireActivity(),
+                    LauncherPreferenceVideoFragment.class,
+                    "VIDEO_SETTINGS",
+                    null
+            ));
+        }
         if (mInstallJarButton != null) {
             mInstallJarButton.setOnClickListener(v -> runInstallerWithConfirmation(false));
             mInstallJarButton.setOnLongClickListener(v -> {
@@ -85,7 +99,6 @@ public class MainMenuFragment extends Fragment {
         if (mEditProfileButton != null) {
             mEditProfileButton.setOnClickListener(v -> mVersionSpinner.openProfileEditor(requireActivity()));
         }
-
         if (mJavaSettingsButton != null) {
             mJavaSettingsButton.setOnClickListener(v -> Tools.swapFragment(
                     requireActivity(),
@@ -94,9 +107,11 @@ public class MainMenuFragment extends Fragment {
                     null
             ));
         }
-
         if (mAccountMenuButton != null) {
             mAccountMenuButton.setOnClickListener(v -> ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true));
+        }
+        if (mCleanCacheButton != null) {
+            mCleanCacheButton.setOnClickListener(v -> cleanLauncherCache(v));
         }
 
         mPlayButton.setOnClickListener(v -> ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true));
@@ -108,17 +123,56 @@ public class MainMenuFragment extends Fragment {
         if (mOpenDirectoryButton != null) {
             mOpenDirectoryButton.setOnClickListener(v -> {
                 Tools.switchDemo(Tools.isDemoProfile(v.getContext()));
-                if(Tools.isDemoProfile(v.getContext())){
+                if (Tools.isDemoProfile(v.getContext())) {
                     Toast.makeText(v.getContext(), R.string.toast_not_available_demo, Toast.LENGTH_LONG).show();
                     return;
                 }
-
                 openPath(v.getContext(), getCurrentProfileDirectory(), false);
             });
         }
 
         updatePlayButtonLabel();
-        updateRamAndRustStatus(view);
+        updateDashboardMetrics(view);
+    }
+
+    private void cleanLauncherCache(View btn) {
+        btn.setEnabled(false);
+        PojavApplication.sExecutorService.execute(() -> {
+            long freedBytes = 0L;
+            try {
+                if (Tools.DIR_CACHE != null && Tools.DIR_CACHE.isDirectory()) {
+                    freedBytes += deleteDirectoryContents(Tools.DIR_CACHE);
+                }
+            } catch (Throwable ignored) {}
+            final double freedMb = freedBytes / (1024.0 * 1024.0);
+            Tools.runOnUiThread(() -> {
+                btn.setEnabled(true);
+                if (isAdded()) {
+                    Toast.makeText(
+                            requireContext(),
+                            String.format(Locale.US, "Đã dọn %.1f MB bộ nhớ đệm!", freedMb),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                    updateDashboardMetrics(getView());
+                }
+            });
+        });
+    }
+
+    private long deleteDirectoryContents(File dir) {
+        long freed = 0L;
+        File[] children = dir.listFiles();
+        if (children == null) return 0L;
+        for (File c : children) {
+            if (c.isDirectory()) {
+                freed += deleteDirectoryContents(c);
+                c.delete();
+            } else {
+                long len = c.length();
+                if (c.delete()) freed += len;
+            }
+        }
+        return freed;
     }
 
     private void updatePlayButtonLabel() {
@@ -145,8 +199,32 @@ public class MainMenuFragment extends Fragment {
         mPlayButton.setText(ssb);
     }
 
-    private void updateRamAndRustStatus(View root) {
+    private String getShortRendererLabel(String id) {
+        if (id == null) return "GL4ES";
+        switch (id) {
+            case "opengles3_mobileglues": return "MobileGlues 4.0";
+            case "opengles3_ng_gl4es": return "Krypton NG-GL4ES";
+            case "opengles3_desktopgl_zink_kopper": return "Kopper Zink";
+            case "vulkan_zink": return "Zink Vulkan";
+            case "opengles3_ltw": return "LTW ES3";
+            default: return "Holy GL4ES";
+        }
+    }
+
+    private void updateDashboardMetrics(View root) {
         if (root == null) return;
+
+        TextView rendererChip = root.findViewById(R.id.hutao_renderer_chip);
+        if (rendererChip != null) {
+            rendererChip.setText(getShortRendererLabel(LauncherPreferences.PREF_RENDERER));
+        }
+
+        TextView jreChip = root.findViewById(R.id.hutao_jre_chip);
+        if (jreChip != null) {
+            int validJres = MultiRTUtils.getValidRuntimeCount();
+            jreChip.setText(validJres > 0 ? "JRE Ready: " + validJres : "JRE: Đang giải nén...");
+        }
+
         TextView memText = root.findViewById(R.id.hutao_memory_text);
         ProgressBar memBar = root.findViewById(R.id.hutao_memory_bar);
         if (memText != null && memBar != null) {
@@ -164,6 +242,15 @@ public class MainMenuFragment extends Fragment {
             } catch (Throwable ignored) {}
         }
 
+        TextView socInfo = root.findViewById(R.id.hutao_soc_info_text);
+        if (socInfo != null) {
+            try {
+                GLInfoUtils.GLInfo gl = GLInfoUtils.getGlInfo();
+                String gpu = (gl != null && gl.renderer != null) ? gl.renderer : "OpenGL ES";
+                socInfo.setText("SoC: " + Build.HARDWARE + " • GPU: " + gpu);
+            } catch (Throwable ignored) {}
+        }
+
         TextView rustStatus = root.findViewById(R.id.hutao_rust_status_text);
         if (rustStatus != null) {
             String abi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "aarch64";
@@ -177,10 +264,10 @@ public class MainMenuFragment extends Fragment {
 
     private File getCurrentProfileDirectory() {
         String currentProfile = LauncherPreferences.DEFAULT_PREF.getString(LauncherPreferences.PREF_KEY_CURRENT_PROFILE, null);
-        if(!Tools.isValidString(currentProfile)) return new File(Tools.DIR_GAME_NEW);
+        if (!Tools.isValidString(currentProfile)) return new File(Tools.DIR_GAME_NEW);
         LauncherProfiles.load();
         MinecraftProfile profileObject = LauncherProfiles.mainProfileJson.profiles.get(currentProfile);
-        if(profileObject == null) return new File(Tools.DIR_GAME_NEW);
+        if (profileObject == null) return new File(Tools.DIR_GAME_NEW);
         return Tools.getGameDirPath(profileObject);
     }
 
@@ -189,11 +276,11 @@ public class MainMenuFragment extends Fragment {
         super.onResume();
         mVersionSpinner.reloadProfiles();
         updatePlayButtonLabel();
-        updateRamAndRustStatus(getView());
+        updateDashboardMetrics(getView());
     }
 
     private void runInstallerWithConfirmation(boolean isCustomArgs) {
-        if(Tools.isLocalProfile(requireContext()) || Tools.isDemoProfile(requireContext())){
+        if (Tools.isDemoProfile(requireContext())) {
             Toast.makeText(requireContext(), R.string.toast_not_available_demo, Toast.LENGTH_LONG).show();
             return;
         }
