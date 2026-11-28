@@ -239,18 +239,17 @@ public class JREUtils {
                 envMap.put("POJAVEXEC_EGL", "libltw.so");
             } else if(LOCAL_RENDERER.equals("opengles3_mobileglues")) {
                 File mgDir = new File(Tools.DIR_DATA, "mobileglues");
-                if (!mgDir.exists()) mgDir.mkdirs();
-                File mgCfg = new File(mgDir, "config.json");
-                if (!mgCfg.exists()) {
-                    try (FileOutputStream fos = new FileOutputStream(mgCfg)) {
-                        String defaultCfg = "{\"enableANGLE\":0,\"enableNoError\":1,\"enableExtGL43\":1,\"enableExtComputeShader\":1,\"maxGlslCacheSize\":64,\"multidrawMode\":0,\"fsr1Setting\":0}";
-                        fos.write(defaultCfg.getBytes());
-                    } catch (IOException ignored) {}
-                }
+                MobileGluesConfig.writeConfigJson(mgDir);
                 envMap.put("MG_DIR_PATH", mgDir.getAbsolutePath());
                 envMap.put("LIBGL_ES", "3");
                 envMap.put("POJAVEXEC_EGL", "libmobileglues.so");
                 envMap.put("LIBGL_EGL", "libmobileglues.so");
+                File sfpewSo = new File(NATIVE_LIB_DIR, "libSimpleFPEWrapper.so");
+                if (MobileGluesConfig.isSfpewEnabled() && sfpewSo.isFile()) {
+                    envMap.put("SFPEW_LAYER", "1");
+                    envMap.put("SFPEW_EGL", NATIVE_LIB_DIR + "/libmobileglues.so");
+                    envMap.put("SFPEW_RELAXED_CONTEXT", "1");
+                }
             } else if(LOCAL_RENDERER.equals("opengles3_ng_gl4es")) {
                 envMap.put("LIBGL_USE_MC_COLOR", "1");
                 envMap.put("LIBGL_GL", "31");
@@ -366,6 +365,24 @@ public class JREUtils {
 
         // Some phones are not using the right number of cores, fix that
         userArgs.add("-XX:ActiveProcessorCount=" + java.lang.Runtime.getRuntime().availableProcessors());
+        if (LauncherPreferences.PREF_AUTO_GC) {
+            boolean hasCustomGc = false;
+            for (String a : userArgs) {
+                if (a.startsWith("-XX:+Use") && a.endsWith("GC")) {
+                    hasCustomGc = true;
+                    break;
+                }
+            }
+            if (!hasCustomGc) {
+                userArgs.add("-XX:+UseG1GC");
+                userArgs.add("-XX:MaxGCPauseMillis=" + (runtime.javaVersion >= 21 ? "30" : "35"));
+                if (runtime.javaVersion >= 17) {
+                    userArgs.add("-XX:+UnlockExperimentalVMOptions");
+                    userArgs.add("-XX:G1NewSizePercent=20");
+                    userArgs.add("-XX:G1ReservePercent=20");
+                }
+            }
+        }
 
         userArgs.addAll(JVMArgs);
         activity.runOnUiThread(() -> Toast.makeText(activity, activity.getString(R.string.autoram_info_msg,LauncherPreferences.PREF_RAM_ALLOCATION), Toast.LENGTH_SHORT).show());
@@ -413,6 +430,12 @@ public class JREUtils {
                 "-Duser.timezone=" + TimeZone.getDefault().getID(),
 
                 "-Dorg.lwjgl.vulkan.libname=libvulkan.so",
+                "-Dorg.lwjgl.system.allocator=system",
+                "-Dorg.lwjgl.openal.libname=" + NATIVE_LIB_DIR + "/libopenal.so",
+                "-Dorg.lwjgl.librarypath=" + NATIVE_LIB_DIR,
+                "-Dorg.lwjgl.system.SharedLibraryExtractPath=" + Tools.DIR_CACHE.getAbsolutePath(),
+                "-Djna.tmpdir=" + Tools.DIR_CACHE.getAbsolutePath(),
+                "-Dio.netty.native.workdir=" + Tools.DIR_CACHE.getAbsolutePath(),
                 //LWJGL 3 DEBUG FLAGS
                 //"-Dorg.lwjgl.util.Debug=true",
                 //"-Dorg.lwjgl.util.DebugFunctions=true",
@@ -517,7 +540,15 @@ public class JREUtils {
         if(LOCAL_RENDERER == null) return null;
         String renderLibrary;
         switch (LOCAL_RENDERER){
-            case "opengles3_mobileglues": renderLibrary = "libmobileglues.so"; break;
+            case "opengles3_mobileglues":
+                File sfpewFile = new File(NATIVE_LIB_DIR, "libSimpleFPEWrapper.so");
+                if (MobileGluesConfig.isSfpewEnabled() && sfpewFile.isFile()) {
+                    dlopen(NATIVE_LIB_DIR + "/libmobileglues.so");
+                    dlopen(sfpewFile.getAbsolutePath());
+                    return sfpewFile.getAbsolutePath();
+                }
+                renderLibrary = "libmobileglues.so";
+                break;
             case "opengles3_ng_gl4es": renderLibrary = "libng_gl4es.so"; break;
             case "opengles3_desktopgl_zink_kopper": renderLibrary = "libglxshim.so"; break;
             case "opengles2":
