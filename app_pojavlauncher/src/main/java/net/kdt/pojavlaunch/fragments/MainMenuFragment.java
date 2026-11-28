@@ -38,6 +38,7 @@ import net.kdt.pojavlaunch.prefs.screens.LauncherPreferenceVideoFragment;
 import net.kdt.pojavlaunch.progresskeeper.ProgressKeeper;
 import net.kdt.pojavlaunch.rust.RustCoreBridge;
 import net.kdt.pojavlaunch.utils.GLInfoUtils;
+import net.kdt.pojavlaunch.utils.LogViewerDialog;
 import net.kdt.pojavlaunch.value.launcherprofiles.LauncherProfiles;
 import net.kdt.pojavlaunch.value.launcherprofiles.MinecraftProfile;
 
@@ -117,7 +118,11 @@ public class MainMenuFragment extends Fragment {
         mPlayButton.setOnClickListener(v -> ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true));
 
         if (mShareLogsButton != null) {
-            mShareLogsButton.setOnClickListener(v -> shareLog(requireContext()));
+            mShareLogsButton.setOnClickListener(v -> LogViewerDialog.show(requireActivity()));
+            mShareLogsButton.setOnLongClickListener(v -> {
+                shareLog(requireContext());
+                return true;
+            });
         }
 
         if (mOpenDirectoryButton != null) {
