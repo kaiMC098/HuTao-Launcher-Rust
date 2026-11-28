@@ -29,6 +29,18 @@
             app2:seekBarIncrement="@integer/memory_seekbar_increment"
             app2:selectable="false"/>
 
+        <Preference
+            android:key="smart_ram_suggest"
+            android:persistent="false"
+            android:title="Gợi ý RAM tối ưu theo máy"
+            android:summary="Tự động đặt mức phân bổ RAM an toàn để hạn chế văng game (OOM)" />
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:key="auto_gc"
+            android:title="Tối ưu bộ thu gom rác (Auto GC)"
+            android:summary="Tự động bật G1GC mượt cho Java 8, 17, 21 và 25" />
+
         <SwitchPreference
             android:defaultValue="true"
             android:key="java_sandbox"

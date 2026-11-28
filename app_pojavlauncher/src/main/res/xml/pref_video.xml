@@ -12,6 +12,13 @@
             android:icon="@drawable/ic_setting_engine"
             app2:useSimpleSummaryProvider="true"/>
 
+        <Preference
+            android:key="mobileglues_settings"
+            android:persistent="false"
+            android:title="Tùy chỉnh MobileGlues (OpenGL 4.0)"
+            android:summary="SFPEW (1.12.2+), ANGLE, GL Version, AMD FSR 1, Shader Cache, MultiDraw"
+            android:icon="@drawable/ic_setting_engine" />
+
         <androidx.preference.SwitchPreferenceCompat
             android:defaultValue="false"
             android:key="ignoreNotch"
