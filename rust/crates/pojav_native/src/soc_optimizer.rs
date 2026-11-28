@@ -78,7 +78,25 @@ pub static DETECTED_SOC: Lazy<Mutex<SocProfile>> = Lazy::new(|| {
 pub fn apply_soc_runtime_optimizations() -> SocProfile {
     let profile = DETECTED_SOC.lock().map(|p| p.clone()).unwrap_or_else(|_| classify_soc("", "", ""));
 
+    let renderer_name = unsafe {
+        let rk = CString::new("POJAV_RENDERER").unwrap();
+        let rp = libc::getenv(rk.as_ptr());
+        if rp.is_null() {
+            String::new()
+        } else {
+            CStr::from_ptr(rp).to_string_lossy().into_owned()
+        }
+    };
+    let is_gl4es = renderer_name.is_empty()
+        || renderer_name == "opengles2"
+        || renderer_name == "opengles2_5"
+        || renderer_name == "opengles3"
+        || renderer_name == "opengles3_ng_gl4es";
+
     for (k, v) in &profile.env_overrides {
+        if !is_gl4es && k.starts_with("LIBGL_") {
+            continue;
+        }
         if let (Ok(ck), Ok(cv)) = (CString::new(k.as_str()), CString::new(v.as_str())) {
             unsafe {
                 // Không ghi đè nếu người dùng đã tự cấu hình trong custom_env.txt

@@ -242,7 +242,7 @@ unsafe fn dlsym_egl() -> Option<EglApi> {
         }};
     }
 
-    Some(EglApi {
+    let mut api = EglApi {
         egl_get_display: load_egl!("eglGetDisplay"),
         egl_initialize: load_egl!("eglInitialize"),
         egl_choose_config: load_egl!("eglChooseConfig"),
@@ -260,7 +260,44 @@ unsafe fn dlsym_egl() -> Option<EglApi> {
         egl_release_thread: load_egl!("eglReleaseThread"),
         egl_get_error: load_egl!("eglGetError"),
         egl_query_surface: load_egl!("eglQuerySurface"),
-    })
+    };
+
+    // SimpleFPEWrapper (SFPEW) compatibility layer for MobileGlues on Minecraft <= 1.16.5
+    if getenv_str("SFPEW_LAYER").is_some() {
+        let mut wrapper = std::ptr::null_mut();
+        if let Some(ref nd) = native_dir {
+            if let Ok(c_sfpew) = CString::new(format!("{}/libSimpleFPEWrapper.so", nd)) {
+                wrapper = libc::dlopen(c_sfpew.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL);
+            }
+        }
+        if wrapper.is_null() {
+            let c_bare = CString::new("libSimpleFPEWrapper.so").unwrap();
+            wrapper = libc::dlopen(c_bare.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL);
+        }
+        if !wrapper.is_null() {
+            let sfpew_gpa_sym = libc::dlsym(wrapper, gpa_name.as_ptr());
+            if !sfpew_gpa_sym.is_null() {
+                let sfpew_gpa: unsafe extern "C" fn(*const c_char) -> *mut c_void =
+                    std::mem::transmute(sfpew_gpa_sym);
+                let c_cc = CString::new("eglCreateContext").unwrap();
+                let c_dc = CString::new("eglDestroyContext").unwrap();
+                let c_mc = CString::new("eglMakeCurrent").unwrap();
+                let c_sb = CString::new("eglSwapBuffers").unwrap();
+                let p_cc = sfpew_gpa(c_cc.as_ptr());
+                let p_dc = sfpew_gpa(c_dc.as_ptr());
+                let p_mc = sfpew_gpa(c_mc.as_ptr());
+                let p_sb = sfpew_gpa(c_sb.as_ptr());
+                if !p_cc.is_null() && !p_dc.is_null() && !p_mc.is_null() && !p_sb.is_null() {
+                    api.egl_create_context = std::mem::transmute(p_cc);
+                    api.egl_destroy_context = std::mem::transmute(p_dc);
+                    api.egl_make_current = std::mem::transmute(p_mc);
+                    api.egl_swap_buffers = std::mem::transmute(p_sb);
+                }
+            }
+        }
+    }
+
+    Some(api)
 }
 
 unsafe fn dlsym_osmesa() -> Option<OsmesaApi> {

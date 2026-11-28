@@ -7,7 +7,20 @@ use jni::sys::{
 };
 use jni::JNIEnv;
 use std::ffi::{c_int, c_void, CStr, CString};
+use once_cell::sync::Lazy;
 use std::sync::atomic::Ordering;
+use std::sync::{Condvar, Mutex};
+use std::time::Duration;
+
+static EVENT_WAIT: Lazy<(Mutex<bool>, Condvar)> = Lazy::new(|| (Mutex::new(false), Condvar::new()));
+
+fn notify_event_wait() {
+    let (lock, cvar) = &*EVENT_WAIT;
+    if let Ok(mut ready) = lock.lock() {
+        *ready = true;
+        cvar.notify_all();
+    }
+}
 
 unsafe fn clear_exception(raw_env: *mut jni::sys::JNIEnv) -> bool {
     if raw_env.is_null() {
@@ -524,6 +537,7 @@ pub extern "system" fn Java_org_lwjgl_glfw_CallbackBridge_nativeSendScreenSize(
         st.monitor_size_consumed = false;
         st.should_update_monitor_size = true;
     }
+    notify_event_wait();
 }
 
 // --- GLFW Native Callback Registrations (required by LWJGL3 GLFW.java) ---
@@ -1096,4 +1110,74 @@ pub extern "C" fn pojavPumpEvents(window: *mut c_void) {
             }
         }
     }
+}
+
+// --- LWJGL 3.3.3 / ZalithLauncher 2 Compatibility Hooks ---
+
+#[no_mangle]
+pub extern "system" fn Java_org_lwjgl_glfw_GLFW_nativeInitializeGLFWNativeBridge(
+    env: JNIEnv,
+    _class: JClass,
+) {
+    unsafe {
+        ensure_glfw_bridge_initialized(env.get_raw());
+    }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_org_lwjgl_glfw_CallbackBridge_nativeSetCursorShape(
+    _env: JNIEnv,
+    _class: JClass,
+    _shape: jint,
+) {}
+
+#[no_mangle]
+pub extern "system" fn Java_org_lwjgl_glfw_GLFW_gwResetEventWait(
+    _env: JNIEnv,
+    _class: JClass,
+) {
+    let (lock, _) = &*EVENT_WAIT;
+    if let Ok(mut ready) = lock.lock() {
+        *ready = false;
+    }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_org_lwjgl_glfw_GLFW_gwStopEventWait(
+    _env: JNIEnv,
+    _class: JClass,
+) {
+    notify_event_wait();
+}
+
+#[no_mangle]
+pub extern "system" fn Java_org_lwjgl_glfw_GLFW_gwPostEmptyEvent(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jint {
+    notify_event_wait();
+    0
+}
+
+#[no_mangle]
+pub extern "system" fn Java_org_lwjgl_glfw_GLFW_gwWaitEvents(
+    _env: JNIEnv,
+    _class: JClass,
+    seconds: jdouble,
+    timed: jboolean,
+) -> jint {
+    let (lock, cvar) = &*EVENT_WAIT;
+    if let Ok(mut ready) = lock.lock() {
+        if !*ready {
+            let wait_dur = if timed != JNI_FALSE && seconds.is_finite() && seconds > 0.0 {
+                Duration::from_secs_f64(seconds.min(0.25))
+            } else {
+                Duration::from_millis(16)
+            };
+            let _ = cvar.wait_timeout(ready, wait_dur);
+        } else {
+            *ready = false;
+        }
+    }
+    0
 }
