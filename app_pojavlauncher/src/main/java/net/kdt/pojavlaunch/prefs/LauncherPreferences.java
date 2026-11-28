@@ -67,6 +67,7 @@ public class LauncherPreferences {
     public static String PREF_DOWNLOAD_SOURCE = "default";
     public static boolean PREF_SKIP_NOTIFICATION_PERMISSION_CHECK = false;
     public static boolean PREF_VSYNC_IN_ZINK = true;
+    public static boolean PREF_AUTO_GC = true;
 
 
     public static void loadPreferences(Context ctx) {
@@ -109,6 +110,7 @@ public class LauncherPreferences {
         PREF_VERIFY_MANIFEST = DEFAULT_PREF.getBoolean("verifyManifest", true);
         PREF_SKIP_NOTIFICATION_PERMISSION_CHECK = DEFAULT_PREF.getBoolean(PREF_KEY_SKIP_NOTIFICATION_CHECK, false);
         PREF_VSYNC_IN_ZINK = DEFAULT_PREF.getBoolean("vsync_in_zink", true);
+        PREF_AUTO_GC = DEFAULT_PREF.getBoolean("auto_gc", true);
 
         String argLwjglLibname = "-Dorg.lwjgl.opengl.libname=";
         for (String arg : JREUtils.parseJavaArguments(PREF_CUSTOM_JAVA_ARGS)) {
@@ -139,7 +141,7 @@ public class LauncherPreferences {
      * @param ctx Context needed to get the total memory of the device.
      * @return The best default value found.
      */
-    private static int findBestRAMAllocation(Context ctx){
+    public static int findBestRAMAllocation(Context ctx){
         int deviceRam = Tools.getTotalDeviceMemory(ctx);
         if (deviceRam < 1024) return 296;
         if (deviceRam < 1536) return 448;
