@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Fetches verified 2026 Java Runtimes (JRE 8, 17, 21, 25) and modern Android GL/Vulkan
-renderers (MobileGlues, NG-GL4ES Krypton Wrapper, Kopper Zink, OpenAL Soft) directly
-from ZalithLauncher/ZalithLauncher2 using fast Git sparse checkout, then stages only
-the requested architecture's binaries & binpacks into HuTao Launcher Rust.
+Fetches verified 2026 Java Runtimes (JRE 8, 17, 21, 25), modern renderers
+(MobileGlues, SimpleFPEWrapper, NG-GL4ES, Kopper Zink, OpenAL Soft),
+LWJGL 3.3.3 (JARs + natives), and Caciocavallo 17 (1.19.1 + cacio-agent.jar)
+from ZalithLauncher/ZalithLauncher2 via fast Git sparse checkout.
 """
 import argparse
 import os
@@ -33,11 +33,13 @@ JRE_MAP = [
     ("jre-25", "jre-25", "25"),
 ]
 
-RENDERER_AARS = [
+NATIVE_AARS = [
     "MobileGlues-release.aar",
+    "SimpleFPEWrapper-release.aar",
     "NG-GL4ES-release.aar",
     "kopper-zink-release.aar",
     "openal-soft-release.aar",
+    "lwjgl-3.3.3-natives-release.aar",
 ]
 
 
@@ -78,10 +80,14 @@ def ensure_zalith_sparse_checkout():
         "/ZalithLauncher/src/main/assets/runtimes/jre-17",
         "/ZalithLauncher/src/main/assets/runtimes/jre-21",
         "/ZalithLauncher/src/main/assets/runtimes/jre-25",
+        "/ZalithLauncher/src/main/assets/app_runtime/lwjgl/3.3.3",
+        "/ZalithLauncher/src/main/assets/components/caciocavallo17",
         "/ZalithLauncher/libs/MobileGlues-release.aar",
+        "/ZalithLauncher/libs/SimpleFPEWrapper-release.aar",
         "/ZalithLauncher/libs/NG-GL4ES-release.aar",
         "/ZalithLauncher/libs/kopper-zink-release.aar",
         "/ZalithLauncher/libs/openal-soft-release.aar",
+        "/ZalithLauncher/libs/lwjgl-3.3.3-natives-release.aar",
     ], cwd=CACHE_DIR)
 
     sample = os.path.join(CACHE_DIR, "ZalithLauncher/src/main/assets/runtimes/jre-17/universal.tar.xz")
@@ -100,7 +106,7 @@ def stage_jres(arch: str):
             shutil.rmtree(dst_dir)
 
         if not os.path.isdir(src_dir):
-            print(f"[JRE {major}] Warning: {src_dir} missing in ZalithLauncher2 checkout")
+            print(f"[JRE {major}] Warning: {src_dir} missing")
             continue
 
         os.makedirs(dst_dir, exist_ok=True)
@@ -124,34 +130,70 @@ def stage_jres(arch: str):
             print(f"[JRE {major}] Staged v{ver} into components/{dst_comp} for arches: {copied}")
 
 
-def stage_renderers(arch: str):
+def stage_lwjgl_and_cacio():
+    # 1. LWJGL 3.3.3 JARs -> components/lwjgl3_z2/
+    lwjgl_src = os.path.join(CACHE_DIR, "ZalithLauncher/src/main/assets/app_runtime/lwjgl/3.3.3")
+    lwjgl_dst = os.path.join(ASSETS_COMPONENTS, "lwjgl3_z2")
+    if os.path.isdir(lwjgl_src):
+        if os.path.exists(lwjgl_dst):
+            shutil.rmtree(lwjgl_dst)
+        os.makedirs(lwjgl_dst, exist_ok=True)
+        jar_count = 0
+        for fn in sorted(os.listdir(lwjgl_src)):
+            if fn.endswith(".jar"):
+                shutil.copy2(os.path.join(lwjgl_src, fn), os.path.join(lwjgl_dst, fn))
+                jar_count += 1
+        with open(os.path.join(lwjgl_dst, "version"), "w", encoding="utf-8") as vf:
+            vf.write("3.3.3-zalith2\n")
+        print(f"[LWJGL 3.3.3] Staged {jar_count} JARs into components/lwjgl3_z2")
+
+    # 2. Caciocavallo 17 (1.19.1 + cacio-agent.jar) -> components/caciocavallo17/
+    cacio_src = os.path.join(CACHE_DIR, "ZalithLauncher/src/main/assets/components/caciocavallo17")
+    cacio_dst = os.path.join(ASSETS_COMPONENTS, "caciocavallo17")
+    if os.path.isdir(cacio_src):
+        if os.path.exists(cacio_dst):
+            shutil.rmtree(cacio_dst)
+        os.makedirs(cacio_dst, exist_ok=True)
+        jar_count = 0
+        for fn in sorted(os.listdir(cacio_src)):
+            if fn.endswith(".jar"):
+                shutil.copy2(os.path.join(cacio_src, fn), os.path.join(cacio_dst, fn))
+                jar_count += 1
+        with open(os.path.join(cacio_dst, "version"), "w", encoding="utf-8") as vf:
+            vf.write("1.19.1-zalith2\n")
+        print(f"[Cacio17] Staged {jar_count} JARs (incl. cacio-agent.jar) into components/caciocavallo17")
+
+
+def stage_native_aars(arch: str):
     libs_src = os.path.join(CACHE_DIR, "ZalithLauncher/libs")
     target_abis = set(ARCH_TO_ABI.values()) if arch == "all" else {ARCH_TO_ABI[arch]}
 
-    for aar_name in RENDERER_AARS:
+    for aar_name in NATIVE_AARS:
         aar_path = os.path.join(libs_src, aar_name)
         if not os.path.isfile(aar_path):
-            print(f"[Renderer] Warning: {aar_name} not found in ZalithLauncher2 libs")
+            print(f"[Native] Warning: {aar_name} not found")
             continue
 
         extracted = 0
         with zipfile.ZipFile(aar_path, "r") as zf:
             for member in zf.namelist():
-                if not member.startswith("jni/") or not member.endswith(".so"):
+                if not member.endswith(".so"):
                     continue
+                abi = None
+                so_name = os.path.basename(member)
                 parts = member.split("/")
-                if len(parts) != 3:
-                    continue
-                abi, so_name = parts[1], parts[2]
+                if member.startswith("jni/") and len(parts) == 3:
+                    abi = parts[1]
+                elif "/natives/" in member and len(parts) >= 3:
+                    abi = parts[-2]
                 if abi not in target_abis:
                     continue
                 out_dir = os.path.join(JNILIBS_DIR, abi)
                 os.makedirs(out_dir, exist_ok=True)
-                out_path = os.path.join(out_dir, so_name)
-                with zf.open(member) as src, open(out_path, "wb") as dst:
+                with zf.open(member) as src, open(os.path.join(out_dir, so_name), "wb") as dst:
                     shutil.copyfileobj(src, dst)
                 extracted += 1
-        print(f"[Renderer] Extracted {extracted} .so file(s) from {aar_name} for {sorted(target_abis)}")
+        print(f"[Native] Extracted {extracted} .so file(s) from {aar_name} for {sorted(target_abis)}")
 
 
 def build_standalone_tarballs():
@@ -183,12 +225,13 @@ def build_standalone_tarballs():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=["arm64", "arm", "x86_64", "x86", "all"], required=True)
-    parser.add_argument("--standalone", action="store_true", help="Also build standalone arm64 .tar.xz runtimes")
+    parser.add_argument("--standalone", action="store_true")
     args = parser.parse_args()
 
     ensure_zalith_sparse_checkout()
     stage_jres(args.arch)
-    stage_renderers(args.arch)
+    stage_lwjgl_and_cacio()
+    stage_native_aars(args.arch)
     if args.standalone:
         build_standalone_tarballs()
 
